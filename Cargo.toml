@@ -1,0 +1,13 @@
+[package]
+name = "oh-bother"
+version = "0.1.0"
+authors = ["Matt Chun-Lum <mchunlum@gmail.com>"]
+
+[[bin]]
+bench = false
+path = "src/main.rs"
+name = "ob"
+
+[dependencies]
+clap = "2.13.0"
+yaml-rust = "*"
