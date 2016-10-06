@@ -10,4 +10,6 @@ name = "ob"
 
 [dependencies]
 clap = "2.13.0"
+hyper = "~0.9.10"
+rpassword = "0.3"
 yaml-rust = "*"
