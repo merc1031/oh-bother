@@ -1,7 +1,14 @@
 extern crate clap;
+extern crate hyper;
+extern crate rustc_serialize;
+extern crate rpassword;
 extern crate yaml_rust;
 
 use clap::{App, AppSettings, Arg, SubCommand};
+use hyper::Client;
+use hyper::client::IntoUrl;
+use hyper::header::{Headers, Authorization, ContentType};
+use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 
 use std::path::Path;
 use std::env;
@@ -31,33 +38,77 @@ fn main() {
         .subcommand(SubCommand::with_name("setup")
             .about("Configures oh-bother")
             .setting(AppSettings::ColoredHelp))
+        .subcommand(SubCommand::with_name("list")
+            .about("Lists interrupts")
+            .setting(AppSettings::ColoredHelp))
+        .subcommand(SubCommand::with_name("start")
+            .about("Start the specified interrupt")
+            .arg(Arg::with_name("issue")
+                .help("the issue")
+                .index(1)
+                .required(true))
+            .setting(AppSettings::ColoredHelp))
+        .subcommand(SubCommand::with_name("close")
+            .about("Close the specified interrupt")
+            .arg(Arg::with_name("issue")
+                .help("the issue")
+                .index(1)
+                .required(true))
+            .setting(AppSettings::ColoredHelp))
         .subcommand(SubCommand::with_name("new")
-            .about("Creates a new pull request")
-            .setting(AppSettings::ColoredHelp)
+            .about("Creates a new interrupt")
             .arg(Arg::with_name("title")
-                .help("the title of the pr")
+                .help("the title of the interrupt")
                 .index(1)
                 .required(true))
             .arg(Arg::with_name("foo")
                 .help("Foo")
-                .long("foo")))
+                .long("foo"))
+            .setting(AppSettings::ColoredHelp))
         .get_matches();
 
     let config_file = matches.value_of("config").unwrap();
     let config_path = Path::new(config_file);
 
-    let config = match Config::new(&config_path) {
-        Err(why) => {
-            println!("There was an error loading the config. Maybe run 'setup'?");
-            util::exit(&format!("couldn't open config file {}: {}",
-                                config_path.display(),
-                                why))
+    if matches.is_present("setup") {
+        match Config::create(&config_path) {
+            Err(why) => {
+                println!("There was an error creating the config.");
+                util::exit(&format!("couldn't create config file {}: {}",
+                                    config_path.display(),
+                                    why))
+            }
+            Ok(_) => {}
         }
-        Ok(config) => config,
-    };
+        println!("Please edit {} to include your desired configuration",
+                 config_path.display());
+    } else {
+        let config = match Config::new(&config_path) {
+            Err(why) => {
+                println!("There was an error loading the config. Maybe run 'setup'?");
+                util::exit(&format!("couldn't open config file {}: {}",
+                                    config_path.display(),
+                                    why))
+            }
+            Ok(config) => config,
+        };
 
-    match matches.subcommand_name() {
-        Some("new") => println!("new"),
-        _ => println!("unknown"),
+        match matches.subcommand_name() {
+            Some("list") => println!("list"),
+            Some("start") => println!("start"),
+            Some("close") => println!("close"),
+            Some("new") => println!("new"),
+            _ => util::exit("unknown command"), // shouldn't really ever get here
+        }
     }
+}
+
+fn list(conf: &Config) {
+    let mut headers = Headers::new();
+    headers.set(Authorization(format!("Basic {}", conf.auth).to_owned()));
+    headers.set(ContentType(Mime(TopLevel::Application,
+                                 SubLevel::Json,
+                                 vec![(Attr::Charset, Value::Utf8)])));
+    let client = Client::new();
+    let res = client.get(conf.jira_url.into_url().unwrap()).headers(headers).send().unwrap();
 }
