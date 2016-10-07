@@ -65,6 +65,13 @@ fn main() {
                 .help("Foo")
                 .long("foo"))
             .setting(AppSettings::ColoredHelp))
+        .subcommand(SubCommand::with_name("jql")
+            .about("Execute a raw jql query")
+            .arg(Arg::with_name("query")
+                .help("the jql query")
+                .index(1)
+                .required(true))
+            .setting(AppSettings::ColoredHelp))
         .get_matches();
 
     let config_file = matches.value_of("config").unwrap();
@@ -98,6 +105,7 @@ fn main() {
             Some("start") => println!("start"),
             Some("close") => println!("close"),
             Some("new") => println!("new"),
+            Some("jql") => println!("jql"),
             _ => util::exit("unknown command"), // shouldn't really ever get here
         }
     }
