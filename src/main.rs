@@ -1,22 +1,28 @@
 extern crate clap;
+extern crate url;
 extern crate hyper;
 extern crate rustc_serialize;
 extern crate rpassword;
 extern crate yaml_rust;
 
-use clap::{App, AppSettings, Arg, SubCommand};
+use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use hyper::Url;
 use hyper::Client;
 use hyper::client::IntoUrl;
 use hyper::header::{Headers, Authorization, ContentType};
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 
+use rustc_serialize::{Encodable, json};
+
 use std::path::Path;
 use std::env;
+use std::io::Read;
 
 use config::Config;
 
-mod util;
 mod config;
+mod jira;
+mod util;
 
 fn main() {
     let default_config_path = env::home_dir().unwrap().join(".ob.yml");
@@ -105,18 +111,39 @@ fn main() {
             Some("start") => println!("start"),
             Some("close") => println!("close"),
             Some("new") => println!("new"),
-            Some("jql") => println!("jql"),
+            Some("jql") => jql(&config, &matches),
             _ => util::exit("unknown command"), // shouldn't really ever get here
         }
     }
 }
 
-fn list(conf: &Config) {
+fn jql(conf: &Config, matches: &ArgMatches) {
+    let subcmd = match matches.subcommand_matches("jql") {
+        Some(matches) => matches,
+        None => util::exit("wtf")
+    };
+
+    let query = subcmd.value_of("query").unwrap();
+
     let mut headers = Headers::new();
     headers.set(Authorization(format!("Basic {}", conf.auth).to_owned()));
     headers.set(ContentType(Mime(TopLevel::Application,
                                  SubLevel::Json,
                                  vec![(Attr::Charset, Value::Utf8)])));
     let client = Client::new();
-    let res = client.get(conf.jira_url.into_url().unwrap()).headers(headers).send().unwrap();
+    let base_url = Url::parse(conf.jira_url.as_str()).unwrap();
+    let mut url = base_url.join("rest/api/2/search").unwrap();
+    let foo = JQLQuery {
+        jql: query.to_string(),
+        fields: vec!["summary".to_string(), "status".to_string(), "assignee".to_string()],
+    };
+    let body = json::encode(&foo).unwrap();
+    let mut res = client.post(url).headers(headers).body(body.as_str()).send().unwrap();
+    let mut resp = String::new();
+    match res.read_to_string(&mut resp) {
+        Err(why) => util::exit(&format!("Error! {}", why)),
+        Ok(_) => {}
+    }
+    println!("{}", resp)
+
 }
