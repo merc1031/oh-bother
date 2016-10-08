@@ -1,5 +1,5 @@
 use rpassword;
-use yaml_rust::{Yaml, YamlLoader};
+use yaml_rust::YamlLoader;
 use yaml_rust::scanner::ScanError;
 
 use std::fs::File;
@@ -14,6 +14,7 @@ use rustc_serialize::base64::{ToBase64, STANDARD};
 pub struct Config {
     pub jira_url: String,
     pub auth: String,
+    pub username: String,
 }
 
 type ConfigResult<T> = Result<T, ConfigError>;
@@ -55,6 +56,7 @@ impl Config {
         Ok(Config {
             jira_url: data["config"]["jira"].as_str().unwrap().to_string(),
             auth: data["config"]["auth"].as_str().unwrap().to_string(),
+            username: data["config"]["username"].as_str().unwrap().to_string(),
         })
     }
 

@@ -1,26 +1,22 @@
+extern crate itertools;
 extern crate clap;
-extern crate url;
 extern crate hyper;
-extern crate rustc_serialize;
+extern crate prettytable;
 extern crate rpassword;
+extern crate rustc_serialize;
+extern crate url;
 extern crate yaml_rust;
 
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
-use hyper::Url;
-use hyper::Client;
-use hyper::client::IntoUrl;
-use hyper::header::{Headers, Authorization, ContentType};
-use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
-
-use rustc_serialize::{Encodable, json};
 
 use std::path::Path;
 use std::env;
-use std::io::Read;
 
 use config::Config;
+use jira::Jira;
 
 mod config;
+mod issue;
 mod jira;
 mod util;
 
@@ -46,6 +42,12 @@ fn main() {
             .setting(AppSettings::ColoredHelp))
         .subcommand(SubCommand::with_name("list")
             .about("Lists interrupts")
+            .setting(AppSettings::ColoredHelp))
+        .subcommand(SubCommand::with_name("current")
+            .about("Lists tickets currently being worked on or assigned")
+            .setting(AppSettings::ColoredHelp))
+        .subcommand(SubCommand::with_name("next")
+            .about("Lists available interrupts")
             .setting(AppSettings::ColoredHelp))
         .subcommand(SubCommand::with_name("start")
             .about("Start the specified interrupt")
@@ -106,44 +108,66 @@ fn main() {
             Ok(config) => config,
         };
 
+        let jira = match Jira::new(config.auth.as_str(), config.jira_url.as_str()) {
+            Err(why) => util::exit(&format!("couldn't construct client: {}", why)),
+            Ok(jira) => jira,
+        };
+
         match matches.subcommand_name() {
             Some("list") => println!("list"),
+            Some("current") => current(&config, &jira),
+            Some("next") => next(&config, &jira),
             Some("start") => println!("start"),
             Some("close") => println!("close"),
             Some("new") => println!("new"),
-            Some("jql") => jql(&config, &matches),
+            Some("jql") => jql(&jira, &matches),
             _ => util::exit("unknown command"), // shouldn't really ever get here
         }
     }
 }
 
-fn jql(conf: &Config, matches: &ArgMatches) {
+fn current(config: &Config, jira: &Jira) {
+    let query = format!("project = IRA AND assignee = {} AND status not in (Resolved, Closed)",
+                        config.username);
+    let result = match jira.query(&query) {
+        Err(why) => util::exit(&format!("Error executing query {}: {}", query, why)),
+        Ok(result) => result,
+    };
+
+    match result {
+        Some(result) => result.as_filtered_table(&["key", "status", "summary"]).print_tty(false),
+        None => println!("the query \"{}\" returned no issues", query),
+    }
+}
+
+fn next(config: &Config, jira: &Jira) {
+    // let query = format!("project = IRA AND status = Open AND assignee = {}", config.username);
+    let query = "project = IRA AND status = Open AND assignee = ir-devtools-robot";
+    let result = match jira.query(&query) {
+        Err(why) => util::exit(&format!("Error executing query {}: {}", query, why)),
+        Ok(result) => result,
+    };
+
+    match result {
+        Some(result) => result.as_filtered_table(&["key", "summary"]).print_tty(false),
+        None => println!("the query \"{}\" returned no issues", query),
+    }
+}
+
+fn jql(jira: &Jira, matches: &ArgMatches) {
     let subcmd = match matches.subcommand_matches("jql") {
         Some(matches) => matches,
-        None => util::exit("wtf")
+        None => util::exit("this should not be possible"),
     };
 
     let query = subcmd.value_of("query").unwrap();
-
-    let mut headers = Headers::new();
-    headers.set(Authorization(format!("Basic {}", conf.auth).to_owned()));
-    headers.set(ContentType(Mime(TopLevel::Application,
-                                 SubLevel::Json,
-                                 vec![(Attr::Charset, Value::Utf8)])));
-    let client = Client::new();
-    let base_url = Url::parse(conf.jira_url.as_str()).unwrap();
-    let mut url = base_url.join("rest/api/2/search").unwrap();
-    let foo = JQLQuery {
-        jql: query.to_string(),
-        fields: vec!["summary".to_string(), "status".to_string(), "assignee".to_string()],
+    let result = match jira.query(&query) {
+        Err(why) => util::exit(&format!("Error executing query {}: {}", query, why)),
+        Ok(result) => result,
     };
-    let body = json::encode(&foo).unwrap();
-    let mut res = client.post(url).headers(headers).body(body.as_str()).send().unwrap();
-    let mut resp = String::new();
-    match res.read_to_string(&mut resp) {
-        Err(why) => util::exit(&format!("Error! {}", why)),
-        Ok(_) => {}
-    }
-    println!("{}", resp)
 
+    match result {
+        Some(result) => result.as_table().print_tty(false),
+        None => println!("the query \"{}\" returned no issues", query),
+    }
 }
