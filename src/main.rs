@@ -1,4 +1,5 @@
 extern crate itertools;
+#[macro_use]
 extern crate clap;
 extern crate hyper;
 extern crate prettytable;
@@ -7,13 +8,15 @@ extern crate rustc_serialize;
 extern crate url;
 extern crate yaml_rust;
 
-use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches};
+use prettytable::Table;
 
 use std::path::Path;
 use std::env;
 
 use config::Config;
 use jira::Jira;
+use issue::IssueVec;
 
 mod config;
 mod issue;
@@ -22,64 +25,14 @@ mod util;
 
 fn main() {
     let default_config_path = env::home_dir().unwrap().join(".ob.yml");
-    let matches = App::new("ob")
-        .version("1.0.0")
-        .author("Matt Chun-Lum")
-        .about("JIRA interrupt management")
-        .setting(AppSettings::SubcommandRequiredElseHelp)
-        .setting(AppSettings::ColoredHelp)
-        .arg(Arg::with_name("dry")
-            .help("show what request(s) would be made")
-            .long("dry-run"))
+    let yml = load_yaml!("app.yml");
+    let matches = App::from_yaml(yml)
         .arg(Arg::with_name("config")
             .help("sets the config file to use")
             .takes_value(true)
             .default_value(default_config_path.to_str().unwrap())
             .short("c")
             .long("config"))
-        .subcommand(SubCommand::with_name("setup")
-            .about("Configures oh-bother")
-            .setting(AppSettings::ColoredHelp))
-        .subcommand(SubCommand::with_name("list")
-            .about("Lists interrupts")
-            .setting(AppSettings::ColoredHelp))
-        .subcommand(SubCommand::with_name("current")
-            .about("Lists tickets currently being worked on or assigned")
-            .setting(AppSettings::ColoredHelp))
-        .subcommand(SubCommand::with_name("next")
-            .about("Lists available interrupts")
-            .setting(AppSettings::ColoredHelp))
-        .subcommand(SubCommand::with_name("start")
-            .about("Start the specified interrupt")
-            .arg(Arg::with_name("issue")
-                .help("the issue")
-                .index(1)
-                .required(true))
-            .setting(AppSettings::ColoredHelp))
-        .subcommand(SubCommand::with_name("close")
-            .about("Close the specified interrupt")
-            .arg(Arg::with_name("issue")
-                .help("the issue")
-                .index(1)
-                .required(true))
-            .setting(AppSettings::ColoredHelp))
-        .subcommand(SubCommand::with_name("new")
-            .about("Creates a new interrupt")
-            .arg(Arg::with_name("title")
-                .help("the title of the interrupt")
-                .index(1)
-                .required(true))
-            .arg(Arg::with_name("foo")
-                .help("Foo")
-                .long("foo"))
-            .setting(AppSettings::ColoredHelp))
-        .subcommand(SubCommand::with_name("jql")
-            .about("Execute a raw jql query")
-            .arg(Arg::with_name("query")
-                .help("the jql query")
-                .index(1)
-                .required(true))
-            .setting(AppSettings::ColoredHelp))
         .get_matches();
 
     let config_file = matches.value_of("config").unwrap();
@@ -114,10 +67,12 @@ fn main() {
         };
 
         match matches.subcommand_name() {
+            Some("issue") => issue(&jira, &matches),
             Some("list") => println!("list"),
             Some("current") => current(&config, &jira),
             Some("next") => next(&config, &jira),
             Some("start") => println!("start"),
+            Some("stop") => println!("stop"),
             Some("close") => println!("close"),
             Some("new") => println!("new"),
             Some("jql") => jql(&jira, &matches),
@@ -126,32 +81,36 @@ fn main() {
     }
 }
 
-fn current(config: &Config, jira: &Jira) {
-    let query = format!("project = IRA AND assignee = {} AND status not in (Resolved, Closed)",
-                        config.username);
-    let result = match jira.query(&query) {
-        Err(why) => util::exit(&format!("Error executing query {}: {}", query, why)),
+fn issue(jira: &Jira, matches: &ArgMatches) {
+    let subcmd = match matches.subcommand_matches("issue") {
+        Some(matches) => matches,
+        None => util::exit("this should not be possible"),
+    };
+
+    let issue_key = subcmd.value_of("issue").unwrap();
+    let result = match jira.issue(&issue_key) {
+        Err(why) => util::exit(&format!("Error finding issue {}: {}", issue_key, why)),
         Ok(result) => result,
     };
 
     match result {
-        Some(result) => result.as_filtered_table(&["key", "status", "summary"]).print_tty(false),
-        None => println!("the query \"{}\" returned no issues", query),
+        Some(issue) => println!("{}", issue),
+        None => println!("Issue {} not found", issue_key),
     }
 }
 
-fn next(config: &Config, jira: &Jira) {
-    // let query = format!("project = IRA AND status = Open AND assignee = {}", config.username);
-    let query = "project = IRA AND status = Open AND assignee = ir-devtools-robot";
-    let result = match jira.query(&query) {
-        Err(why) => util::exit(&format!("Error executing query {}: {}", query, why)),
-        Ok(result) => result,
-    };
+fn current(config: &Config, jira: &Jira) {
+    let query = format!("project in ({}) AND assignee = {} AND status not in (Resolved, Closed)",
+                        config.projects(),
+                        config.username);
+    perform_query(jira, &query, |result| result.as_filtered_table(&["key", "status", "summary"]))
+}
 
-    match result {
-        Some(result) => result.as_filtered_table(&["key", "summary"]).print_tty(false),
-        None => println!("the query \"{}\" returned no issues", query),
-    }
+fn next(config: &Config, jira: &Jira) {
+    let query = format!("project in ({}) AND status = Open AND assignee in ({})",
+                        config.projects(),
+                        config.npc_users());
+    perform_query(jira, &query, |result| result.as_filtered_table(&["key", "reporter", "summary"]))
 }
 
 fn jql(jira: &Jira, matches: &ArgMatches) {
@@ -161,13 +120,19 @@ fn jql(jira: &Jira, matches: &ArgMatches) {
     };
 
     let query = subcmd.value_of("query").unwrap();
-    let result = match jira.query(&query) {
+    perform_query(jira, query, |result| result.as_table())
+}
+
+fn perform_query<F>(jira: &Jira, query: &str, table_fn: F)
+    where F : Fn(IssueVec) -> Table
+{
+    let result = match jira.query(query) {
         Err(why) => util::exit(&format!("Error executing query {}: {}", query, why)),
         Ok(result) => result,
     };
 
     match result {
-        Some(result) => result.as_table().print_tty(false),
+        Some(result) => table_fn(result).print_tty(false),
         None => println!("the query \"{}\" returned no issues", query),
     }
 }

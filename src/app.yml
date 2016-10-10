@@ -1,0 +1,90 @@
+name: oh-bother
+version: 1.0.0
+about: Simple* JIRA interrupt management
+
+settings:
+  - SubcommandRequiredElseHelp
+  - ColoredHelp
+
+# there is a special "config" arg that is added in the app
+# itself since it requires a dynamic path value
+subcommands:
+  - setup:
+      about: Create a config file
+      settings:
+        - ColoredHelp
+
+  - list:
+      about: Lists open interrupts
+      settings:
+        - ColoredHelp
+
+  - current:
+      about: Lists open interrupts assigned to you
+      settings:
+        - ColoredHelp
+
+  - next:
+      about: Lists available interrupts
+      settings:
+        - ColoredHelp
+
+  - start:
+      about: Start work on the specified interrupt
+      settings:
+        - ColoredHelp
+      args:
+        - issue:
+            help: issue key
+            index: 1
+            required: true
+
+  - stop:
+      about: Stop work on the specified interrupt
+      settings:
+        - ColoredHelp
+      args:
+        - issue:
+            help: issue key
+            index: 1
+            required: true
+
+  - close:
+      about: Close the specified interrupt
+      settings:
+        - ColoredHelp
+      args:
+        - issue:
+            help: issue key
+            index: 1
+            required: true
+
+  - new:
+      about: Create a new interrupt
+      settings:
+        - ColoredHelp
+      args:
+        - summary:
+            help: The summary for the new interrupt
+            index: 1
+            required: true
+
+  - issue:
+      about: Look up an issue by it's key
+      settings:
+        - ColoredHelp
+      args:
+        - issue:
+            help: issue key
+            index: 1
+            required: true
+
+  - jql:
+      about: Execute a raw jql query
+      settings:
+        - ColoredHelp
+      args:
+        - query:
+            help: The JQL query
+            index: 1
+            required: true

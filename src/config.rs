@@ -1,6 +1,7 @@
 use rpassword;
 use yaml_rust::YamlLoader;
 use yaml_rust::scanner::ScanError;
+use itertools;
 
 use std::fs::File;
 use std::path::Path;
@@ -11,18 +12,13 @@ use std::io::Write;
 
 use rustc_serialize::base64::{ToBase64, STANDARD};
 
-pub struct Config {
-    pub jira_url: String,
-    pub auth: String,
-    pub username: String,
-}
-
 type ConfigResult<T> = Result<T, ConfigError>;
 
 #[derive(Debug)]
 pub enum ConfigError {
     IoError(io::Error),
     ParseError(ScanError),
+    InvalidConfig,
 }
 
 impl From<io::Error> for ConfigError {
@@ -42,8 +38,28 @@ impl fmt::Display for ConfigError {
         match *self {
             ConfigError::IoError(ref e) => e.fmt(f),
             ConfigError::ParseError(ref e) => e.fmt(f),
+            ConfigError::InvalidConfig => write!(f, "configuration file exists but is invalid"),
         }
     }
+}
+
+// handle invalid configs by raising InvalidConfig if ever we try to get a value
+// and it's not there
+fn extract<F, T>(extractor: F) -> ConfigResult<T>
+    where F: Fn() -> Option<T>
+{
+    match extractor() {
+        Some(val) => Ok(val),
+        None => Err(ConfigError::InvalidConfig),
+    }
+}
+
+pub struct Config {
+    pub jira_url: String,
+    pub auth: String,
+    pub username: String,
+    pub projects: Vec<String>,
+    pub npc_users: Vec<String>,
 }
 
 impl Config {
@@ -53,10 +69,31 @@ impl Config {
         try!(file.read_to_string(&mut s));
         let docs = try!(YamlLoader::load_from_str(&s));
         let data = &docs[0];
+
+        let jira_url = try!(extract(|| data["config"]["jira"].as_str())).to_string();
+        let auth_data = try!(extract(|| data["config"]["auth"].as_str())).to_string();
+        let username = try!(extract(|| data["config"]["username"].as_str())).to_string();
+
+        let raw_projects = try!(extract(|| data["config"]["project_keys"].as_vec()));
+        let mut projects = Vec::new();
+        for elem in raw_projects.iter() {
+            let val = try!(extract(|| elem.as_str())).to_string();
+            projects.push(val);
+        }
+
+        let raw_npc_users = try!(extract(|| data["config"]["npc_users"].as_vec()));
+        let mut npc_users = Vec::new();
+        for elem in raw_npc_users.iter() {
+            let val = try!(extract(|| elem.as_str())).to_string();
+            npc_users.push(val);
+        }
+
         Ok(Config {
-            jira_url: data["config"]["jira"].as_str().unwrap().to_string(),
-            auth: data["config"]["auth"].as_str().unwrap().to_string(),
-            username: data["config"]["username"].as_str().unwrap().to_string(),
+            jira_url: jira_url,
+            auth: auth_data,
+            username: username,
+            projects: projects,
+            npc_users: npc_users,
         })
     }
 
@@ -71,22 +108,37 @@ impl Config {
         let mut username = String::new();
         io::stdin().read_line(&mut username).expect("Invalid username");
 
+        let pass = rpassword::prompt_password_stdout("Password: ").unwrap();
+
         print!("Interrupt project key: ");
         try!(io::stdout().flush()); // need to do this since print! won't flush
         let mut project_key = String::new();
         io::stdin().read_line(&mut project_key).expect("Invalid project key");
 
-        let pass = rpassword::prompt_password_stdout("Password: ").unwrap();
+        print!("Team username (a 'team' user like 'foo-robot'): ");
+        try!(io::stdout().flush()); // need to do this since print! won't flush
+        let mut npc = String::new();
+        io::stdin().read_line(&mut npc).expect("Invalid team username");
+
         let auth = format!("{}:{}", username.trim(), pass.trim());
         let base64auth = auth.as_bytes().to_base64(STANDARD);
 
         try!(create_config_file(path,
-                                &jira.trim(),
+                                jira.trim(),
                                 username.trim(),
                                 &base64auth,
-                                &project_key.trim()));
+                                npc.trim(),
+                                project_key.trim()));
 
         Config::new(path)
+    }
+
+    pub fn projects(&self) -> String {
+        itertools::join(self.projects.clone(), ", ")
+    }
+
+    pub fn npc_users(&self) -> String {
+        itertools::join(self.npc_users.clone(), ", ")
     }
 }
 
@@ -94,6 +146,7 @@ fn create_config_file(path: &Path,
                       jira: &str,
                       username: &str,
                       auth: &str,
+                      npc: &str,
                       project_key: &str)
                       -> Result<(), io::Error> {
     let mut file = try!(File::create(&path));
@@ -101,23 +154,33 @@ fn create_config_file(path: &Path,
 config_version: 1
 config:
   # connectivity settings
-  jira: \"{}\"
-  username: \"{}\"
-  auth: \"{}\"
+  jira: \"{jira}\"
+  username: \"{username}\"
+  auth: \"{auth}\"
 
   # controls whether or not manipulated issues are opened in the web browser
   open_in_browser: true
   browser_command: google-chrome
 
+  # These projects are used to find issues for commands like 'list' and 'next'
+  project_keys:
+    - {project_key}
+
+  # these users are users for whom a ticket is considered 'fair game' or 'unassigned'
+  npc_users:
+    - Unassigned
+    - {npc}
+
   interrupt_defaults:
-    project_key: {}
+    project_key: {project_key}
     labels:
       - interrupt
 ",
-                          jira,
-                          username,
-                          auth,
-                          project_key);
+                          jira = jira,
+                          username = username,
+                          auth = auth,
+                          npc = npc,
+                          project_key = project_key);
 
     try!(file.write_all(content.as_bytes()));
     Ok(())

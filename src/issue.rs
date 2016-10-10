@@ -21,7 +21,6 @@ fn extract_string_array(data: &Json, path: &[&str]) -> Vec<String> {
             obj.as_array()
                 .unwrap()
                 .into_iter()
-                .rev()
                 .map(|elem| elem.as_string().unwrap().to_string())
                 .collect()
         }
@@ -68,7 +67,7 @@ impl Issue {
             if raw_issues.is_array() {
                 let issues: Vec<Self> = raw_issues.as_array()
                     .unwrap() // unwrap should be safe because we check first
-                    .into_iter()
+                    .iter()
                     .rev()
                     .map(|elem| Self::from_data(elem))
                     .collect();

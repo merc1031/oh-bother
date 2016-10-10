@@ -54,6 +54,10 @@ impl AuthedClient {
     pub fn post<U: IntoUrl>(&self, url: U) -> RequestBuilder {
         self.client.post(url).headers(self.headers.clone())
     }
+
+    pub fn get<U: IntoUrl>(&self, url: U) -> RequestBuilder {
+        self.client.get(url).headers(self.headers.clone())
+    }
 }
 
 #[derive(Debug)]
@@ -132,5 +136,15 @@ impl Jira {
         try!(res.read_to_string(&mut response_body));
         let data = try!(Json::from_str(response_body.as_str()));
         Ok(Issue::issues_from_response(&data))
+    }
+
+    pub fn issue(&self, issue_key: &str) -> JiraResult<Option<Issue>> {
+        let url = try!(self.base_url.join(&format!("rest/api/2/issue/{}", issue_key)));
+        let mut res = try!(self.client.get(url).send());
+        let mut response_body = String::new();
+        try!(res.read_to_string(&mut response_body));
+        println!("{}", response_body);
+        let data = try!(Json::from_str(response_body.as_str()));
+        Ok(Some(Issue::from_data(&data)))
     }
 }
