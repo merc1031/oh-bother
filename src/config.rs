@@ -60,6 +60,8 @@ pub struct Config {
     pub username: String,
     pub projects: Vec<String>,
     pub npc_users: Vec<String>,
+    pub open_in_browser: bool,
+    pub browser_command: String,
 }
 
 impl Config {
@@ -87,6 +89,9 @@ impl Config {
             let val = try!(extract(|| elem.as_str())).to_string();
             npc_users.push(val);
         }
+        let open_in_browser = try!(extract(|| data["config"]["open_in_browser"].as_bool()));
+        let browser_command = try!(extract(|| data["config"]["browser_command"].as_str()))
+            .to_string();
 
         Ok(Config {
             jira_url: jira_url,
@@ -94,6 +99,8 @@ impl Config {
             username: username,
             projects: projects,
             npc_users: npc_users,
+            open_in_browser: open_in_browser,
+            browser_command: browser_command,
         })
     }
 

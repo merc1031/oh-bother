@@ -11,12 +11,13 @@ extern crate yaml_rust;
 use clap::{App, Arg, ArgMatches};
 use prettytable::Table;
 
-use std::path::Path;
 use std::env;
+use std::path::Path;
+use std::process::Command;
 
 use config::Config;
 use jira::Jira;
-use issue::IssueVec;
+use issue::{Issue, IssueVec};
 
 mod config;
 mod issue;
@@ -67,7 +68,7 @@ fn main() {
         };
 
         match matches.subcommand_name() {
-            Some("issue") => issue(&jira, &matches),
+            Some("issue") => issue(&config, &jira, &matches),
             Some("list") => println!("list"),
             Some("current") => current(&config, &jira),
             Some("next") => next(&config, &jira),
@@ -81,7 +82,7 @@ fn main() {
     }
 }
 
-fn issue(jira: &Jira, matches: &ArgMatches) {
+fn issue(config: &Config, jira: &Jira, matches: &ArgMatches) {
     let subcmd = match matches.subcommand_matches("issue") {
         Some(matches) => matches,
         None => util::exit("this should not be possible"),
@@ -93,9 +94,15 @@ fn issue(jira: &Jira, matches: &ArgMatches) {
         Ok(result) => result,
     };
 
-    match result {
-        Some(issue) => println!("{}", issue),
-        None => println!("Issue {} not found", issue_key),
+    let issue = match result {
+        Some(issue) => issue,
+        None => util::exit(&format!("Issue {} not found", issue_key)),
+    };
+
+    issue.print_tty(false);
+
+    if subcmd.is_present("open") {
+        open_in_browser(config, jira, &issue)
     }
 }
 
@@ -134,5 +141,16 @@ fn perform_query<F>(jira: &Jira, query: &str, table_fn: F)
     match result {
         Some(result) => table_fn(result).print_tty(false),
         None => println!("the query \"{}\" returned no issues", query),
+    }
+}
+
+fn open_in_browser(config: &Config, jira: &Jira, issue: &Issue) {
+    let url = match jira.browse_url_for(issue) {
+        Err(why) =>  util::exit(&format!("Error making browse url: {}", why)),
+        Ok(url) => url
+    };
+    match Command::new(config.browser_command.as_str()).arg(url.as_str()).output() {
+        Err(why) =>  util::exit(&format!("Error opening in browser: {}", why)),
+        _ => {}
     }
 }

@@ -78,6 +78,11 @@ subcommands:
             help: issue key
             index: 1
             required: true
+        - open:
+            help: open in browser
+            short: o
+            long: open
+
 
   - jql:
       about: Execute a raw jql query

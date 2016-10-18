@@ -3,9 +3,9 @@ use prettytable::row::Row;
 use prettytable::cell::Cell;
 use prettytable::format;
 use rustc_serialize::json::Json;
+use itertools;
 use std::collections::HashMap;
 use std::fmt;
-use itertools;
 
 fn extract_string(data: &Json, path: &[&str]) -> String {
     match data.find_path(path) {
@@ -30,7 +30,7 @@ fn extract_string_array(data: &Json, path: &[&str]) -> Vec<String> {
 
 pub struct Issue {
     self_url: String,
-    key: String,
+    pub key: String,
     summary: String,
     status: String,
     assignee: String,
@@ -88,6 +88,30 @@ impl Issue {
         map.insert("reporter", self.reporter.clone());
         map.insert("labels", labels);
         map
+    }
+
+    pub fn print_tty(&self, force_colorize: bool) {
+        let mut table = Table::new();
+
+        let format = format::FormatBuilder::new()
+            .padding(1, 1)
+            .build();
+
+        table.set_format(format);
+
+        table.add_row(Row::new(vec![Cell::new("Summary"),
+                                    Cell::new(self.summary.as_str()).style_spec("b")]));
+        table.add_row(Row::new(vec![Cell::new("Status"), Cell::new(self.status.as_str())]));
+        table.add_row(Row::new(vec![Cell::new("Reporter"), Cell::new(self.reporter.as_str())]));
+        table.add_row(Row::new(vec![Cell::new("Assignee"), Cell::new(self.assignee.as_str())]));
+
+        if !self.labels.is_empty() {
+            table.add_row(Row::new(vec![Cell::new("Labels"),
+                                        Cell::new(itertools::join(self.labels.clone(), ", ")
+                                            .as_str())]));
+        }
+
+        table.print_tty(force_colorize)
     }
 }
 
