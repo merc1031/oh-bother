@@ -1,4 +1,3 @@
-extern crate itertools;
 #[macro_use]
 extern crate clap;
 extern crate hyper;
@@ -86,7 +85,7 @@ fn issue(config: &Config, jira: &Jira, matches: &ArgMatches) {
     };
 
     let issue_key = subcmd.value_of("issue").unwrap();
-    let result = match jira.issue(&issue_key) {
+    let result = match jira.issue(issue_key) {
         Err(why) => util::exit(&format!("Error finding issue {}: {}", issue_key, why)),
         Ok(result) => result,
     };
@@ -118,14 +117,20 @@ fn next(config: &Config, jira: &Jira) {
 }
 
 fn new(config: &Config, jira: &Jira, matches: &ArgMatches) {
-    let result = jira.create_issue() {
-        Err(why) => util::exit(&format!("Error creating issue \"{}\": {}", summary, why)),
-        Ok(result) => result,
+    let subcmd = match matches.subcommand_matches("issue") {
+        Some(matches) => matches,
+        None => util::exit("this should not be possible"),
     };
 
-    let issue = match result {
-        Some(issue) => issue,
-        None => util::exit(&format!("Issue {} not found", issue_key)),
+    let project = subcmd.value_of("project").unwrap_or(config.defaults.project_key.as_str());
+    let summary = subcmd.value_of("summary").unwrap();
+    let assignee = subcmd.value_of("assignee").unwrap_or(config.defaults.assignee.as_str());
+
+    let labels = ["foo"];
+
+    let issue = match jira.create_issue(project, summary, assignee, &labels) {
+        Err(why) => util::exit(&format!("Error creating issue \"{}\": {}", summary, why)),
+        Ok(issue) => issue,
     };
 
     if config.open_in_browser {

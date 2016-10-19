@@ -68,6 +68,22 @@ subcommands:
             help: The summary for the new interrupt
             index: 1
             required: true
+        - project:
+            help: The project key
+            short: p
+            long: project
+            takes_value: true
+        - assignee:
+            help: The assignee
+            short: a
+            long: assignee
+            takes_value: true
+        - label:
+            help: Issue label
+            short: l
+            long: label
+            multiple: true
+            takes_value: true
 
   - issue:
       about: Look up an issue by it's key

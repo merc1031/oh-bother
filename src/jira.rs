@@ -139,10 +139,12 @@ impl Jira {
     }
 
     pub fn create_issue(&self,
+                        project_key: &str,
                         summary: &str,
                         assignee: &str,
                         labels: &[&str])
-                        -> JiraResult<Option<Issue>> {
+                        -> JiraResult<Issue> {
+        Ok(None)
     }
 
     pub fn issue(&self, issue_key: &str) -> JiraResult<Option<Issue>> {

@@ -1,7 +1,6 @@
 use rpassword;
 use yaml_rust::YamlLoader;
 use yaml_rust::scanner::ScanError;
-use itertools;
 
 use std::fs::File;
 use std::path::Path;
@@ -54,6 +53,12 @@ fn extract<F, T>(extractor: F) -> ConfigResult<T>
     }
 }
 
+pub struct Defaults {
+    pub project_key: String,
+    pub assignee: String,
+    pub labels: Vec<String>,
+}
+
 pub struct Config {
     pub jira_url: String,
     pub auth: String,
@@ -62,6 +67,7 @@ pub struct Config {
     pub npc_users: Vec<String>,
     pub open_in_browser: bool,
     pub browser_command: String,
+    pub defaults: Defaults,
 }
 
 impl Config {
@@ -93,6 +99,15 @@ impl Config {
         let browser_command = try!(extract(|| data["config"]["browser_command"].as_str()))
             .to_string();
 
+        let default_project_key = try!(extract(|| data["config"]["new_ticket_defaults"]["project_key"].as_str())).to_string();
+        let default_assignee = try!(extract(|| data["config"]["new_ticket_defaults"]["assignee"].as_str())).to_string();
+        let raw_default_labels = try!(extract(|| data["config"]["new_ticket_defaults"]["labels"].as_vec()));
+        let mut default_labels = Vec::new();
+        for elem in raw_default_labels {
+            let val = try!(extract(|| elem.as_str())).to_string();
+            default_labels.push(val);
+        }
+
         Ok(Config {
             jira_url: jira_url,
             auth: auth_data,
@@ -101,6 +116,11 @@ impl Config {
             npc_users: npc_users,
             open_in_browser: open_in_browser,
             browser_command: browser_command,
+            defaults: Defaults {
+                project_key: default_project_key,
+                assignee: default_assignee,
+                labels: default_labels,
+            }
         })
     }
 
@@ -141,11 +161,11 @@ impl Config {
     }
 
     pub fn projects(&self) -> String {
-        itertools::join(self.projects.clone(), ", ")
+        self.projects.join(", ")
     }
 
     pub fn npc_users(&self) -> String {
-        itertools::join(self.npc_users.clone(), ", ")
+        self.npc_users.join(", ")
     }
 }
 
@@ -171,15 +191,16 @@ config:
 
   # These projects are used to find issues for commands like 'list' and 'next'
   project_keys:
-    - {project_key}
+    - \"{project_key}\"
 
   # these users are users for whom a ticket is considered 'fair game' or 'unassigned'
   npc_users:
     - Unassigned
-    - {npc}
+    - \"{npc}\"
 
-  interrupt_defaults:
-    project_key: {project_key}
+  new_ticket_defaults:
+    project_key: \"{project_key}\"
+    assignee: \"{npc}\"
     labels:
       - interrupt
 ",

@@ -3,7 +3,6 @@ use prettytable::row::Row;
 use prettytable::cell::Cell;
 use prettytable::format;
 use rustc_serialize::json::Json;
-use itertools;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -78,7 +77,7 @@ impl Issue {
     }
 
     pub fn as_hash_map(&self) -> HashMap<&str, String> {
-        let labels = itertools::join(self.labels.clone(), ", ");
+        let labels = self.labels.join(", ");
         let mut map = HashMap::new();
         map.insert("self_url", self.self_url.clone());
         map.insert("key", self.key.clone());
@@ -107,7 +106,7 @@ impl Issue {
 
         if !self.labels.is_empty() {
             table.add_row(Row::new(vec![Cell::new("Labels"),
-                                        Cell::new(itertools::join(self.labels.clone(), ", ")
+                                        Cell::new(self.labels.join(", ")
                                             .as_str())]));
         }
 
