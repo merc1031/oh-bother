@@ -99,9 +99,14 @@ impl Config {
         let browser_command = try!(extract(|| data["config"]["browser_command"].as_str()))
             .to_string();
 
-        let default_project_key = try!(extract(|| data["config"]["new_ticket_defaults"]["project_key"].as_str())).to_string();
-        let default_assignee = try!(extract(|| data["config"]["new_ticket_defaults"]["assignee"].as_str())).to_string();
-        let raw_default_labels = try!(extract(|| data["config"]["new_ticket_defaults"]["labels"].as_vec()));
+        let default_project_key =
+            try!(extract(|| data["config"]["new_ticket_defaults"]["project_key"].as_str()))
+                .to_string();
+        let default_assignee =
+            try!(extract(|| data["config"]["new_ticket_defaults"]["assignee"].as_str()))
+                .to_string();
+        let raw_default_labels =
+            try!(extract(|| data["config"]["new_ticket_defaults"]["labels"].as_vec()));
         let mut default_labels = Vec::new();
         for elem in raw_default_labels {
             let val = try!(extract(|| elem.as_str())).to_string();
@@ -120,7 +125,7 @@ impl Config {
                 project_key: default_project_key,
                 assignee: default_assignee,
                 labels: default_labels,
-            }
+            },
         })
     }
 

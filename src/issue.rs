@@ -5,36 +5,16 @@ use prettytable::format;
 use rustc_serialize::json::Json;
 use std::collections::HashMap;
 use std::fmt;
-
-fn extract_string(data: &Json, path: &[&str]) -> String {
-    match data.find_path(path) {
-        // unwrap should be safe because we check first
-        Some(obj) if obj.is_string() => obj.as_string().unwrap().to_string(),
-        _ => "unknown".to_string(),
-    }
-}
-
-fn extract_string_array(data: &Json, path: &[&str]) -> Vec<String> {
-    match data.find_path(path) {
-        Some(obj) if obj.is_array() => {
-            obj.as_array()
-                .unwrap()
-                .into_iter()
-                .map(|elem| elem.as_string().unwrap().to_string())
-                .collect()
-        }
-        _ => Vec::new(),
-    }
-}
+use util;
 
 pub struct Issue {
-    self_url: String,
+    pub self_url: String,
     pub key: String,
-    summary: String,
-    status: String,
-    assignee: String,
-    reporter: String,
-    labels: Vec<String>,
+    pub summary: String,
+    pub status: String,
+    pub assignee: String,
+    pub reporter: String,
+    pub labels: Vec<String>,
 }
 
 impl fmt::Display for Issue {
@@ -51,13 +31,13 @@ impl fmt::Display for Issue {
 impl Issue {
     pub fn from_data(data: &Json) -> Self {
         Issue {
-            self_url: extract_string(data, &["self"]),
-            key: extract_string(data, &["key"]),
-            summary: extract_string(data, &["fields", "summary"]),
-            status: extract_string(data, &["fields", "status", "name"]),
-            assignee: extract_string(data, &["fields", "assignee", "displayName"]),
-            reporter: extract_string(data, &["fields", "reporter", "displayName"]),
-            labels: extract_string_array(data, &["fields", "labels"]),
+            self_url: util::extract_string(data, &["self"]),
+            key: util::extract_string(data, &["key"]),
+            summary: util::extract_string(data, &["fields", "summary"]),
+            status: util::extract_string(data, &["fields", "status", "name"]),
+            assignee: util::extract_string(data, &["fields", "assignee", "displayName"]),
+            reporter: util::extract_string(data, &["fields", "reporter", "displayName"]),
+            labels: util::extract_string_array(data, &["fields", "labels"]),
         }
     }
 
@@ -106,7 +86,8 @@ impl Issue {
 
         if !self.labels.is_empty() {
             table.add_row(Row::new(vec![Cell::new("Labels"),
-                                        Cell::new(self.labels.join(", ")
+                                        Cell::new(self.labels
+                                            .join(", ")
                                             .as_str())]));
         }
 

@@ -29,7 +29,8 @@ fn main() {
             .takes_value(true)
             .default_value(default_config_path.to_str().unwrap())
             .short("c")
-            .long("config"))
+            .long("config")
+            .global(true))
         .get_matches();
 
     let config_file = matches.value_of("config").unwrap();
@@ -106,18 +107,22 @@ fn current(config: &Config, jira: &Jira) {
     let query = format!("project in ({}) AND assignee = {} AND status not in (Resolved, Closed)",
                         config.projects(),
                         config.username);
-    util::perform_query(jira, &query, |result| result.as_filtered_table(&["key", "status", "summary"]))
+    util::perform_query(jira,
+                        &query,
+                        |result| result.as_filtered_table(&["key", "status", "summary"]))
 }
 
 fn next(config: &Config, jira: &Jira) {
     let query = format!("project in ({}) AND status = Open AND assignee in ({})",
                         config.projects(),
                         config.npc_users());
-    util::perform_query(jira, &query, |result| result.as_filtered_table(&["key", "reporter", "summary"]))
+    util::perform_query(jira,
+                        &query,
+                        |result| result.as_filtered_table(&["key", "reporter", "summary"]))
 }
 
 fn new(config: &Config, jira: &Jira, matches: &ArgMatches) {
-    let subcmd = match matches.subcommand_matches("issue") {
+    let subcmd = match matches.subcommand_matches("new") {
         Some(matches) => matches,
         None => util::exit("this should not be possible"),
     };
@@ -126,12 +131,22 @@ fn new(config: &Config, jira: &Jira, matches: &ArgMatches) {
     let summary = subcmd.value_of("summary").unwrap();
     let assignee = subcmd.value_of("assignee").unwrap_or(config.defaults.assignee.as_str());
 
-    let labels = ["foo"];
-
-    let issue = match jira.create_issue(project, summary, assignee, &labels) {
-        Err(why) => util::exit(&format!("Error creating issue \"{}\": {}", summary, why)),
-        Ok(issue) => issue,
+    let labels = match subcmd.values_of_lossy("label") {
+        Some(labels) => labels,
+        None => config.defaults.labels.to_owned(),
     };
+
+    let result = match jira.create_issue(project, summary, assignee, &labels) {
+        Err(why) => util::exit(&format!("Error creating issue \"{}\": {}", summary, why)),
+        Ok(result) => result,
+    };
+
+    let issue = match result {
+        Some(issue) => issue,
+        None => util::exit(&format!("Error fetching the newly created issue")),
+    };
+
+    issue.print_tty(false);
 
     if config.open_in_browser {
         util::open_in_browser(config, jira, &issue)

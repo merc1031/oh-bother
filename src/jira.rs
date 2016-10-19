@@ -33,6 +33,52 @@ impl JQLQuery {
     }
 }
 
+
+#[derive(RustcDecodable, RustcEncodable)]
+struct CreateIssueRequest {
+    fields: IssueFields,
+}
+
+#[derive(RustcDecodable, RustcEncodable)]
+struct IssueFields {
+    summary: String,
+    assignee: AssigneeFields,
+    labels: Vec<String>,
+    project: ProjectFields,
+    issuetype: IssueTypeFields,
+}
+
+#[derive(RustcDecodable, RustcEncodable)]
+struct AssigneeFields {
+    key: String,
+}
+
+#[derive(RustcDecodable, RustcEncodable)]
+struct ProjectFields {
+    key: String,
+}
+
+#[derive(RustcDecodable, RustcEncodable)]
+struct IssueTypeFields {
+    name: String,
+}
+
+impl CreateIssueRequest {
+    pub fn new(project_key: &str, summary: &str, assignee: &str, labels: &Vec<String>) -> Self {
+        CreateIssueRequest {
+            fields: IssueFields {
+                summary: summary.to_string(),
+                assignee: AssigneeFields {
+                    key: assignee.to_string(),
+                },
+                labels: labels.clone(),
+                project: ProjectFields { key: project_key.to_string() },
+                issuetype: IssueTypeFields { name: "Bug".to_string() },
+            },
+        }
+    }
+}
+
 struct AuthedClient {
     client: Client,
     headers: Headers,
@@ -67,6 +113,7 @@ pub enum JiraError {
     BuilderError(BuilderError),
     EncoderError(EncoderError),
     RequestError(hyper::error::Error),
+    Unexpected(String),
 }
 
 type JiraResult<T> = Result<T, JiraError>;
@@ -101,6 +148,12 @@ impl From<hyper::error::Error> for JiraError {
     }
 }
 
+impl From<String> for JiraError {
+    fn from(err: String) -> JiraError {
+        JiraError::Unexpected(err)
+    }
+}
+
 impl fmt::Display for JiraError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -109,6 +162,7 @@ impl fmt::Display for JiraError {
             JiraError::BuilderError(ref e) => e.fmt(f),
             JiraError::EncoderError(ref e) => e.fmt(f),
             JiraError::RequestError(ref e) => e.fmt(f),
+            JiraError::Unexpected(ref e) => e.fmt(f),
         }
     }
 }
@@ -142,9 +196,26 @@ impl Jira {
                         project_key: &str,
                         summary: &str,
                         assignee: &str,
-                        labels: &[&str])
-                        -> JiraResult<Issue> {
-        Ok(None)
+                        labels: &Vec<String>)
+                        -> JiraResult<Option<Issue>> {
+        let url = try!(self.base_url.join("rest/api/2/issue"));
+        let request = CreateIssueRequest::new(project_key, summary, assignee, labels);
+        let body = try!(json::encode(&request));
+
+        println!("{}", body.as_str());
+
+        let mut res = try!(self.client.post(url).body(body.as_str()).send());
+        let mut response_body = String::new();
+        try!(res.read_to_string(&mut response_body));
+        let data = try!(Json::from_str(response_body.as_str()));
+
+        if let Some(obj) = data.find_path(&["key"]) {
+            let issue_key = obj.as_string().unwrap();
+            return self.issue(issue_key);
+        } else {
+            Err(JiraError::Unexpected(format!("Jira response did not contain new issue key: {}",
+                                              response_body.as_str())))
+        }
     }
 
     pub fn issue(&self, issue_key: &str) -> JiraResult<Option<Issue>> {
