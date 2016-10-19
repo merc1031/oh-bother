@@ -9,15 +9,12 @@ extern crate url;
 extern crate yaml_rust;
 
 use clap::{App, Arg, ArgMatches};
-use prettytable::Table;
 
 use std::env;
 use std::path::Path;
-use std::process::Command;
 
 use config::Config;
 use jira::Jira;
-use issue::{Issue, IssueVec};
 
 mod config;
 mod issue;
@@ -75,7 +72,7 @@ fn main() {
             Some("start") => println!("start"),
             Some("stop") => println!("stop"),
             Some("close") => println!("close"),
-            Some("new") => println!("new"),
+            Some("new") => new(&config, &jira, &matches),
             Some("jql") => jql(&jira, &matches),
             _ => util::exit("unknown command"), // shouldn't really ever get here
         }
@@ -102,7 +99,7 @@ fn issue(config: &Config, jira: &Jira, matches: &ArgMatches) {
     issue.print_tty(false);
 
     if subcmd.is_present("open") {
-        open_in_browser(config, jira, &issue)
+        util::open_in_browser(config, jira, &issue)
     }
 }
 
@@ -110,14 +107,30 @@ fn current(config: &Config, jira: &Jira) {
     let query = format!("project in ({}) AND assignee = {} AND status not in (Resolved, Closed)",
                         config.projects(),
                         config.username);
-    perform_query(jira, &query, |result| result.as_filtered_table(&["key", "status", "summary"]))
+    util::perform_query(jira, &query, |result| result.as_filtered_table(&["key", "status", "summary"]))
 }
 
 fn next(config: &Config, jira: &Jira) {
     let query = format!("project in ({}) AND status = Open AND assignee in ({})",
                         config.projects(),
                         config.npc_users());
-    perform_query(jira, &query, |result| result.as_filtered_table(&["key", "reporter", "summary"]))
+    util::perform_query(jira, &query, |result| result.as_filtered_table(&["key", "reporter", "summary"]))
+}
+
+fn new(config: &Config, jira: &Jira, matches: &ArgMatches) {
+    let result = jira.create_issue() {
+        Err(why) => util::exit(&format!("Error creating issue \"{}\": {}", summary, why)),
+        Ok(result) => result,
+    };
+
+    let issue = match result {
+        Some(issue) => issue,
+        None => util::exit(&format!("Issue {} not found", issue_key)),
+    };
+
+    if config.open_in_browser {
+        util::open_in_browser(config, jira, &issue)
+    }
 }
 
 fn jql(jira: &Jira, matches: &ArgMatches) {
@@ -127,30 +140,5 @@ fn jql(jira: &Jira, matches: &ArgMatches) {
     };
 
     let query = subcmd.value_of("query").unwrap();
-    perform_query(jira, query, |result| result.as_table())
-}
-
-fn perform_query<F>(jira: &Jira, query: &str, table_fn: F)
-    where F : Fn(IssueVec) -> Table
-{
-    let result = match jira.query(query) {
-        Err(why) => util::exit(&format!("Error executing query {}: {}", query, why)),
-        Ok(result) => result,
-    };
-
-    match result {
-        Some(result) => table_fn(result).print_tty(false),
-        None => println!("the query \"{}\" returned no issues", query),
-    }
-}
-
-fn open_in_browser(config: &Config, jira: &Jira, issue: &Issue) {
-    let url = match jira.browse_url_for(issue) {
-        Err(why) =>  util::exit(&format!("Error making browse url: {}", why)),
-        Ok(url) => url
-    };
-    match Command::new(config.browser_command.as_str()).arg(url.as_str()).output() {
-        Err(why) =>  util::exit(&format!("Error opening in browser: {}", why)),
-        _ => {}
-    }
+    util::perform_query(jira, query, |result| result.as_table())
 }

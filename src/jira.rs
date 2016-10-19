@@ -138,6 +138,13 @@ impl Jira {
         Ok(Issue::issues_from_response(&data))
     }
 
+    pub fn create_issue(&self,
+                        summary: &str,
+                        assignee: &str,
+                        labels: &[&str])
+                        -> JiraResult<Option<Issue>> {
+    }
+
     pub fn issue(&self, issue_key: &str) -> JiraResult<Option<Issue>> {
         let url = try!(self.base_url.join(&format!("rest/api/2/issue/{}", issue_key)));
         let mut res = try!(self.client.get(url).send());
