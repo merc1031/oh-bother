@@ -50,7 +50,7 @@ struct IssueFields {
 
 #[derive(RustcDecodable, RustcEncodable)]
 struct AssigneeFields {
-    key: String,
+    name: String,
 }
 
 #[derive(RustcDecodable, RustcEncodable)]
@@ -68,9 +68,7 @@ impl CreateIssueRequest {
         CreateIssueRequest {
             fields: IssueFields {
                 summary: summary.to_string(),
-                assignee: AssigneeFields {
-                    key: assignee.to_string(),
-                },
+                assignee: AssigneeFields { name: assignee.to_string() },
                 labels: labels.clone(),
                 project: ProjectFields { key: project_key.to_string() },
                 issuetype: IssueTypeFields { name: "Bug".to_string() },

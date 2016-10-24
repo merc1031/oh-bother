@@ -100,13 +100,12 @@ impl Config {
             .to_string();
 
         let default_project_key =
-            try!(extract(|| data["config"]["new_ticket_defaults"]["project_key"].as_str()))
+            try!(extract(|| data["config"]["new_issue_defaults"]["project_key"].as_str()))
                 .to_string();
         let default_assignee =
-            try!(extract(|| data["config"]["new_ticket_defaults"]["assignee"].as_str()))
-                .to_string();
+            try!(extract(|| data["config"]["new_issue_defaults"]["assignee"].as_str())).to_string();
         let raw_default_labels =
-            try!(extract(|| data["config"]["new_ticket_defaults"]["labels"].as_vec()));
+            try!(extract(|| data["config"]["new_issue_defaults"]["labels"].as_vec()));
         let mut default_labels = Vec::new();
         for elem in raw_default_labels {
             let val = try!(extract(|| elem.as_str())).to_string();
@@ -203,7 +202,7 @@ config:
     - Unassigned
     - \"{npc}\"
 
-  new_ticket_defaults:
+  new_issue_defaults:
     project_key: \"{project_key}\"
     assignee: \"{npc}\"
     labels:
