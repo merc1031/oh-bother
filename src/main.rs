@@ -19,6 +19,7 @@ mod config;
 mod issue;
 mod jira;
 mod util;
+mod error;
 
 fn main() {
     let default_config_path = env::home_dir().unwrap().join(".ob.yml");

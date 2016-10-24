@@ -1,46 +1,17 @@
 use rpassword;
 use yaml_rust::YamlLoader;
-use yaml_rust::scanner::ScanError;
 
 use std::fs::File;
 use std::path::Path;
-use std::fmt;
 use std::io;
 use std::io::Read;
 use std::io::Write;
 
+use error::ObError;
+
 use rustc_serialize::base64::{ToBase64, STANDARD};
 
-type ConfigResult<T> = Result<T, ConfigError>;
-
-#[derive(Debug)]
-pub enum ConfigError {
-    IoError(io::Error),
-    ParseError(ScanError),
-    InvalidConfig,
-}
-
-impl From<io::Error> for ConfigError {
-    fn from(err: io::Error) -> ConfigError {
-        ConfigError::IoError(err)
-    }
-}
-
-impl From<ScanError> for ConfigError {
-    fn from(err: ScanError) -> ConfigError {
-        ConfigError::ParseError(err)
-    }
-}
-
-impl fmt::Display for ConfigError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            ConfigError::IoError(ref e) => e.fmt(f),
-            ConfigError::ParseError(ref e) => e.fmt(f),
-            ConfigError::InvalidConfig => write!(f, "configuration file exists but is invalid"),
-        }
-    }
-}
+type ConfigResult<T> = Result<T, ObError>;
 
 // handle invalid configs by raising InvalidConfig if ever we try to get a value
 // and it's not there
@@ -49,7 +20,7 @@ fn extract<F, T>(extractor: F) -> ConfigResult<T>
 {
     match extractor() {
         Some(val) => Ok(val),
-        None => Err(ConfigError::InvalidConfig),
+        None => Err(ObError::InvalidConfig),
     }
 }
 

@@ -1,17 +1,14 @@
-
-use hyper;
 use hyper::Client;
 use hyper::Url;
 use hyper::client::{IntoUrl, RequestBuilder};
 use hyper::header::{Headers, Authorization, ContentType};
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
-use rustc_serialize::json::{Json, BuilderError, EncoderError};
+use rustc_serialize::json::{Json};
 use rustc_serialize::json;
-use std::fmt;
-use std::io;
 use std::io::Read;
 use url::ParseError;
 
+use error::ObError;
 use issue::{Issue, IssueVec};
 
 #[derive(RustcDecodable, RustcEncodable)]
@@ -104,66 +101,7 @@ impl AuthedClient {
     }
 }
 
-#[derive(Debug)]
-pub enum JiraError {
-    IoError(io::Error),
-    ParseError(ParseError),
-    BuilderError(BuilderError),
-    EncoderError(EncoderError),
-    RequestError(hyper::error::Error),
-    Unexpected(String),
-}
-
-type JiraResult<T> = Result<T, JiraError>;
-
-impl From<io::Error> for JiraError {
-    fn from(err: io::Error) -> JiraError {
-        JiraError::IoError(err)
-    }
-}
-
-impl From<ParseError> for JiraError {
-    fn from(err: ParseError) -> JiraError {
-        JiraError::ParseError(err)
-    }
-}
-
-impl From<BuilderError> for JiraError {
-    fn from(err: BuilderError) -> JiraError {
-        JiraError::BuilderError(err)
-    }
-}
-
-impl From<EncoderError> for JiraError {
-    fn from(err: EncoderError) -> JiraError {
-        JiraError::EncoderError(err)
-    }
-}
-
-impl From<hyper::error::Error> for JiraError {
-    fn from(err: hyper::error::Error) -> JiraError {
-        JiraError::RequestError(err)
-    }
-}
-
-impl From<String> for JiraError {
-    fn from(err: String) -> JiraError {
-        JiraError::Unexpected(err)
-    }
-}
-
-impl fmt::Display for JiraError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            JiraError::IoError(ref e) => e.fmt(f),
-            JiraError::ParseError(ref e) => e.fmt(f),
-            JiraError::BuilderError(ref e) => e.fmt(f),
-            JiraError::EncoderError(ref e) => e.fmt(f),
-            JiraError::RequestError(ref e) => e.fmt(f),
-            JiraError::Unexpected(ref e) => e.fmt(f),
-        }
-    }
-}
+type JiraResult<T> = Result<T, ObError>;
 
 pub struct Jira {
     client: AuthedClient,
@@ -211,7 +149,7 @@ impl Jira {
             let issue_key = obj.as_string().unwrap();
             return self.issue(issue_key);
         } else {
-            Err(JiraError::Unexpected(format!("Jira response did not contain new issue key: {}",
+            Err(ObError::Unexpected(format!("Jira response did not contain new issue key: {}",
                                               response_body.as_str())))
         }
     }
