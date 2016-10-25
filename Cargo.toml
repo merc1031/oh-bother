@@ -12,7 +12,7 @@ name = "ob"
 lto = true
 
 [dependencies]
-clap = { version = "2.13.0", features = ["yaml"] }
+clap = { version = "2.16.1", features = ["yaml"] }
 hyper = "~0.9.10"
 prettytable-rs = "^0.6"
 rpassword = "0.3"

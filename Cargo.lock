@@ -2,7 +2,7 @@
 name = "oh-bother"
 version = "0.1.0"
 dependencies = [
- "clap 2.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clap 2.16.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "prettytable-rs 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rpassword 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -38,7 +38,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "clap"
-version = "2.13.0"
+version = "2.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "ansi_term 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -443,7 +443,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum atty 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "d7b4cb091c727ebec026331c1b7092981c9cdde34d8df109fa36f29a37532026"
 "checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
 "checksum byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "0fc10e8cc6b2580fda3f36eb6dc5316657f812a3df879a44a66fc9f0fdbc4855"
-"checksum clap 2.13.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2887ae5b606c1fa314b9238e25a8be3fa673378415c32efc5749464f3365ee9d"
+"checksum clap 2.16.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7d3f517329dfa6300c8415693c54e524f777dc470265bd73dfd1ff1699c3ee30"
 "checksum cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "0e3d6405328b6edb412158b3b7710e2634e23f3614b9bb1c412df7952489a626"
 "checksum csv 0.14.7 (registry+https://github.com/rust-lang/crates.io-index)" = "266c1815d7ca63a5bd86284043faf91e8c95e943e55ce05dc0ae08e952de18bc"
 "checksum encode_unicode 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ebaa362d9b3b3a22633c78c58c87da02ec16c0541abfe3eecdd022eb4a08ede8"
