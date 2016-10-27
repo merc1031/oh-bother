@@ -9,7 +9,6 @@ settings:
 args:
   - debug:
       help: Enable debugging
-      short: d
       long: debug
       global: true
   - open:
@@ -80,6 +79,17 @@ subcommands:
             help: The summary for the new interrupt
             index: 1
             required: true
+        - description:
+            help: The description (conflicts with -D)
+            short: d
+            long: description
+            takes_value: true
+            conflicts_with: long_description
+        - long_description:
+            help: Write description in $EDITOR (conflicts with -d)
+            short: D
+            long: long-description
+            conflicts_with: description
         - assignee:
             help: The assignee
             short: a

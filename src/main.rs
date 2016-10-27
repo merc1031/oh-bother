@@ -5,6 +5,7 @@ extern crate prettytable;
 extern crate rpassword;
 extern crate rustc_serialize;
 extern crate url;
+extern crate uuid;
 extern crate yaml_rust;
 
 use clap::{App, Arg, ArgMatches};
@@ -137,7 +138,15 @@ fn new(config: &Config, jira: &Jira, matches: &ArgMatches) {
         None => config.defaults.labels.to_owned(),
     };
 
-    let result = match jira.create_issue(project, summary, assignee, &labels) {
+    let mut description = subcmd.value_of("description").unwrap_or("").to_string();
+    if subcmd.is_present("long_description") {
+        description = match util::string_from_editor() {
+            Err(why) => util::exit(&format!("Failed to get description from editor: {}", why)),
+            Ok(description) => description
+        };
+    }
+
+    let result = match jira.create_issue(project, summary, description.as_str(), assignee, &labels) {
         Err(why) => util::exit(&format!("Error creating issue \"{}\": {}", summary, why)),
         Ok(result) => result,
     };

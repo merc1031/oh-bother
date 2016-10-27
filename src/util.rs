@@ -1,14 +1,20 @@
 extern crate clap;
 
+use std::env;
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
 use std::process::Command;
 
 use rustc_serialize::json::Json;
-
 use prettytable::Table;
+use uuid::Uuid;
 
 use config::Config;
 use jira::Jira;
 use issue::{Issue, IssueVec};
+use error::ObError;
+
 
 pub fn exit(message: &str) -> ! {
     let err = clap::Error::with_description(message, clap::ErrorKind::InvalidValue);
@@ -60,4 +66,33 @@ pub fn extract_string_array(data: &Json, path: &[&str]) -> Vec<String> {
         }
         _ => Vec::new(),
     }
+}
+
+pub fn string_from_editor() -> Result<String, ObError> {
+    let editor = match env::var("EDITOR") {
+        Err(_) => return Err(ObError::Unexpected("EDITOR not set".to_string())),
+        Ok(val) => val,
+    };
+    let tempfile_name = Uuid::new_v4().simple().to_string();
+    let tmp = Path::new("/tmp").join(&tempfile_name);
+    let tempfile = tmp.as_path();
+    let status = try!(Command::new(&editor).arg(tempfile).status());
+
+    if !status.success() {
+        return Err(ObError::Unexpected("Editor did not exit successfully. Aborting.".to_string()));
+    }
+
+    let mut file = try!(File::open(tempfile));
+
+    let mut contents = String::new();
+    match file.read_to_string(&mut contents) {
+        Err(why) => {
+            return Err(ObError::Unexpected(format!("could not read tempfile \"{}\": {}",
+                                                   tempfile.display(),
+                                                   why)))
+        }
+        Ok(_) => {}
+    };
+
+    Ok(contents)
 }

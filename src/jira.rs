@@ -3,7 +3,7 @@ use hyper::Url;
 use hyper::client::{IntoUrl, RequestBuilder};
 use hyper::header::{Headers, Authorization, ContentType};
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
-use rustc_serialize::json::{Json};
+use rustc_serialize::json::Json;
 use rustc_serialize::json;
 use std::io::Read;
 use url::ParseError;
@@ -39,6 +39,7 @@ struct CreateIssueRequest {
 #[derive(RustcDecodable, RustcEncodable)]
 struct IssueFields {
     summary: String,
+    description: String,
     assignee: AssigneeFields,
     labels: Vec<String>,
     project: ProjectFields,
@@ -61,10 +62,16 @@ struct IssueTypeFields {
 }
 
 impl CreateIssueRequest {
-    pub fn new(project_key: &str, summary: &str, assignee: &str, labels: &Vec<String>) -> Self {
+    pub fn new(project_key: &str,
+               summary: &str,
+               description: &str,
+               assignee: &str,
+               labels: &Vec<String>)
+               -> Self {
         CreateIssueRequest {
             fields: IssueFields {
                 summary: summary.to_string(),
+                description: description.to_string(),
                 assignee: AssigneeFields { name: assignee.to_string() },
                 labels: labels.clone(),
                 project: ProjectFields { key: project_key.to_string() },
@@ -131,11 +138,12 @@ impl Jira {
     pub fn create_issue(&self,
                         project_key: &str,
                         summary: &str,
+                        description: &str,
                         assignee: &str,
                         labels: &Vec<String>)
                         -> JiraResult<Option<Issue>> {
         let url = try!(self.base_url.join("rest/api/2/issue"));
-        let request = CreateIssueRequest::new(project_key, summary, assignee, labels);
+        let request = CreateIssueRequest::new(project_key, summary, description, assignee, labels);
         let body = try!(json::encode(&request));
 
         println!("{}", body.as_str());
@@ -150,7 +158,7 @@ impl Jira {
             return self.issue(issue_key);
         } else {
             Err(ObError::Unexpected(format!("Jira response did not contain new issue key: {}",
-                                              response_body.as_str())))
+                                            response_body.as_str())))
         }
     }
 
