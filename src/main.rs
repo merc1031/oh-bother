@@ -1,11 +1,11 @@
 #[macro_use]
 extern crate clap;
+extern crate eprompt;
 extern crate hyper;
 extern crate prettytable;
 extern crate rpassword;
 extern crate rustc_serialize;
 extern crate url;
-extern crate uuid;
 extern crate yaml_rust;
 
 use clap::{App, Arg, ArgMatches};
@@ -15,6 +15,8 @@ use std::path::Path;
 
 use config::Config;
 use jira::Jira;
+
+use eprompt::Prompt;
 
 mod config;
 mod issue;
@@ -70,12 +72,12 @@ fn main() {
 
         match matches.subcommand_name() {
             Some("issue") => issue(&config, &jira, &matches),
-            Some("list") => println!("list"),
+            Some("list") => list(&config, &jira),
             Some("current") => current(&config, &jira),
             Some("next") => next(&config, &jira),
-            Some("start") => println!("start"),
-            Some("stop") => println!("stop"),
-            Some("close") => println!("close"),
+            Some("start") => println!("start not implemented"),
+            Some("stop") => println!("stop not implemented"),
+            Some("close") => println!("close not implemented"),
             Some("new") => new(&config, &jira, &matches),
             Some("jql") => jql(&jira, &matches),
             _ => util::exit("unknown command"), // shouldn't really ever get here
@@ -103,8 +105,15 @@ fn issue(config: &Config, jira: &Jira, matches: &ArgMatches) {
     issue.print_tty(false);
 
     if subcmd.is_present("open") {
-        util::open_in_browser(config, jira, &issue)
+        util::open_in_browser(config, &issue)
     }
+}
+
+fn list(config: &Config, jira: &Jira) {
+    let query = format!("project in ({}) AND status not in (Resolved, Closed)", config.projects());
+    util::perform_query(jira,
+                        &query,
+                        |result| result.as_filtered_table(&["key", "reporter", "assignee", "status", "summary"]))
 }
 
 fn current(config: &Config, jira: &Jira) {
@@ -113,7 +122,7 @@ fn current(config: &Config, jira: &Jira) {
                         config.username);
     util::perform_query(jira,
                         &query,
-                        |result| result.as_filtered_table(&["key", "status", "summary"]))
+                        |result| result.as_filtered_table(&["key", "reporter", "status", "summary"]))
 }
 
 fn next(config: &Config, jira: &Jira) {
@@ -142,7 +151,7 @@ fn new(config: &Config, jira: &Jira, matches: &ArgMatches) {
 
     let mut description = subcmd.value_of("description").unwrap_or("").to_string();
     if subcmd.is_present("long_description") {
-        description = match util::string_from_editor() {
+        description = match Prompt::new().execute() {
             Err(why) => util::exit(&format!("Failed to get description from editor: {}", why)),
             Ok(description) => description
         };
@@ -161,7 +170,7 @@ fn new(config: &Config, jira: &Jira, matches: &ArgMatches) {
     issue.print_tty(false);
 
     if config.open_in_browser {
-        util::open_in_browser(config, jira, &issue)
+        util::open_in_browser(config, &issue)
     }
 }
 

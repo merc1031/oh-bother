@@ -1,3 +1,4 @@
+use hyper::Url;
 use prettytable::Table;
 use prettytable::row::Row;
 use prettytable::cell::Cell;
@@ -15,6 +16,7 @@ pub struct Issue {
     pub assignee: String,
     pub reporter: String,
     pub labels: Vec<String>,
+    pub browse_url: String,
 }
 
 impl fmt::Display for Issue {
@@ -30,14 +32,24 @@ impl fmt::Display for Issue {
 
 impl Issue {
     pub fn from_data(data: &Json) -> Self {
+        let key = util::extract_string(data, &["key"]);
+        let self_url = util::extract_string(data, &["self"]);
+        let browse_url = match Url::parse(&self_url) {
+            Ok(mut url) => {
+                url.set_path(&format!("browse/{}", key.clone()));
+                url.into_string()
+            }
+            Err(_) => String::new()
+        };
         Issue {
-            self_url: util::extract_string(data, &["self"]),
-            key: util::extract_string(data, &["key"]),
+            self_url: self_url,
+            key: key,
             summary: util::extract_string(data, &["fields", "summary"]),
             status: util::extract_string(data, &["fields", "status", "name"]),
             assignee: util::extract_string(data, &["fields", "assignee", "displayName"]),
             reporter: util::extract_string(data, &["fields", "reporter", "displayName"]),
             labels: util::extract_string_array(data, &["fields", "labels"]),
+            browse_url: browse_url,
         }
     }
 
@@ -66,6 +78,7 @@ impl Issue {
         map.insert("assignee", self.assignee.clone());
         map.insert("reporter", self.reporter.clone());
         map.insert("labels", labels);
+        map.insert("browse_url", self.browse_url.clone());
         map
     }
 
@@ -80,6 +93,8 @@ impl Issue {
 
         table.add_row(Row::new(vec![Cell::new("Summary"),
                                     Cell::new(self.summary.as_str()).style_spec("b")]));
+        table.add_row(Row::new(vec![Cell::new("Url"), Cell::new(self.browse_url.as_str())]));
+        table.add_row(Row::new(vec![Cell::new("Key"), Cell::new(self.key.as_str())]));
         table.add_row(Row::new(vec![Cell::new("Status"), Cell::new(self.status.as_str())]));
         table.add_row(Row::new(vec![Cell::new("Reporter"), Cell::new(self.reporter.as_str())]));
         table.add_row(Row::new(vec![Cell::new("Assignee"), Cell::new(self.assignee.as_str())]));

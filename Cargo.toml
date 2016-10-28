@@ -13,10 +13,10 @@ lto = true
 
 [dependencies]
 clap = { version = "2.16.1", features = ["yaml"] }
+eprompt = { git = "https://github.com/mattcl/eprompt.git" }
 hyper = "~0.9.10"
 prettytable-rs = "^0.6"
 rpassword = "0.3"
 rustc-serialize = "*"
 url = "*"
-uuid = { version = "0.2", features = ["v4"] }
 yaml-rust = "*"

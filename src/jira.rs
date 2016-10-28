@@ -6,7 +6,6 @@ use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use rustc_serialize::json::Json;
 use rustc_serialize::json;
 use std::io::Read;
-use url::ParseError;
 
 use error::ObError;
 use issue::{Issue, IssueVec};
@@ -173,9 +172,5 @@ impl Jira {
         try!(res.read_to_string(&mut response_body));
         let data = try!(Json::from_str(response_body.as_str()));
         Ok(Some(Issue::from_data(&data)))
-    }
-
-    pub fn browse_url_for(&self, issue: &Issue) -> Result<Url, ParseError> {
-        self.base_url.join(&format!("browse/{}", issue.key))
     }
 }

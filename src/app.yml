@@ -1,8 +1,14 @@
 name: oh-bother
-version: 1.0.0
-about: Simple* JIRA interrupt management
+version: 0.1.0
+author: Matt Chun-Lum
+about: |
+  Simple* JIRA interrupt helpers.
 
-settings:
+  Currently supports issue discovery, creation, and raw JQL queries.
+
+  *Nothing involving an atlassian api is ever simple
+
+global_settings:
   - SubcommandRequiredElseHelp
   - ColoredHelp
 
@@ -10,7 +16,6 @@ args:
   - debug:
       help: Enable debugging
       long: debug
-      global: true
   - open:
       help: "Open in browser (enabled by default if set to true in config file)"
       short: o
@@ -22,58 +27,50 @@ args:
 subcommands:
   - setup:
       about: Create a config file
-      settings:
-        - ColoredHelp
 
   - list:
       about: Lists open interrupts
-      settings:
-        - ColoredHelp
 
   - current:
       about: Lists open interrupts assigned to you
-      settings:
-        - ColoredHelp
 
   - next:
       about: Lists available interrupts
-      settings:
-        - ColoredHelp
 
-  - start:
-      about: Start work on the specified interrupt
-      settings:
-        - ColoredHelp
-      args:
-        - issue:
-            help: issue key
-            index: 1
-            required: true
+  # - start:
+  #     about: Start work on the specified interrupt
+  #     args:
+  #       - issue:
+  #           help: issue key
+  #           index: 1
+  #           required: true
 
-  - stop:
-      about: Stop work on the specified interrupt
-      settings:
-        - ColoredHelp
-      args:
-        - issue:
-            help: issue key
-            index: 1
-            required: true
+  # - stop:
+  #     about: Stop work on the specified interrupt
+  #     args:
+  #       - issue:
+  #           help: issue key
+  #           index: 1
+  #           required: true
 
-  - close:
-      about: Close the specified interrupt
-      settings:
-        - ColoredHelp
-      args:
-        - issue:
-            help: issue key
-            index: 1
-            required: true
+  # - close:
+  #     about: Close the specified interrupt
+  #     args:
+  #       - issue:
+  #           help: issue key
+  #           index: 1
+  #           required: true
 
   - new:
       about: Create a new interrupt
-      settings:
-        - ColoredHelp
+      after_help: |
+        The following are some general usage examples (using the long option names)
+            ob new 'foo'
+            ob new 'foo' --description 'my description'
+            ob new 'foo' --long-description
+            ob new 'foo' --assignee 'bob'
+            ob new 'foo' --project BAZ
+            ob new 'foo' --label bar --label baz
       args:
         - summary:
             help: The summary for the new interrupt
@@ -109,8 +106,6 @@ subcommands:
 
   - issue:
       about: Look up an issue by it's key
-      settings:
-        - ColoredHelp
       args:
         - issue:
             help: issue key
@@ -119,8 +114,6 @@ subcommands:
 
   - jql:
       about: Execute a raw jql query
-      settings:
-        - ColoredHelp
       args:
         - query:
             help: The JQL query
