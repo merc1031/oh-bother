@@ -113,14 +113,16 @@ type JiraResult<T> = Result<T, ObError>;
 pub struct Jira {
     client: AuthedClient,
     base_url: Url,
+    debug: bool
 }
 
 impl Jira {
-    pub fn new(auth: &str, base_url: &str) -> JiraResult<Jira> {
+    pub fn new(auth: &str, base_url: &str, debug: bool) -> JiraResult<Jira> {
         let url = try!(Url::parse(base_url));
         Ok(Jira {
             client: AuthedClient::new(auth),
             base_url: url,
+            debug: debug
         })
     }
 
@@ -146,7 +148,9 @@ impl Jira {
         let request = CreateIssueRequest::new(project_key, summary, description, assignee, labels);
         let body = try!(json::encode(&request));
 
-        println!("{}", body.as_str());
+        if self.debug {
+            println!("{}", body.as_str());
+        }
 
         let mut res = try!(self.client.post(url).body(body.as_str()).send());
         let mut response_body = String::new();

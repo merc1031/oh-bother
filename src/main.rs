@@ -38,6 +38,8 @@ fn main() {
     let config_file = matches.value_of("config").unwrap();
     let config_path = Path::new(config_file);
 
+    let debug = matches.is_present("debug");
+
     if matches.is_present("setup") {
         match Config::create(&config_path) {
             Err(why) => {
@@ -61,7 +63,7 @@ fn main() {
             Ok(config) => config,
         };
 
-        let jira = match Jira::new(config.auth.as_str(), config.jira_url.as_str()) {
+        let jira = match Jira::new(config.auth.as_str(), config.jira_url.as_str(), debug) {
             Err(why) => util::exit(&format!("couldn't construct client: {}", why)),
             Ok(jira) => jira,
         };

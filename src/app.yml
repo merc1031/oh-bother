@@ -91,18 +91,18 @@ subcommands:
             long: long-description
             conflicts_with: description
         - assignee:
-            help: The assignee
+            help: The assignee (defaults to value in config file)
             short: a
             long: assignee
             takes_value: true
         - label:
-            help: Issue label (can be specified multiple times)
+            help: Issue label (can be specified multiple times) (defaults to value in config file)
             short: l
             long: label
             multiple: true
             takes_value: true
         - project:
-            help: The project key
+            help: The project key (defaults to value in config file)
             short: p
             long: project
             takes_value: true
