@@ -9,8 +9,10 @@ about: |
   *Nothing involving an atlassian api is ever simple
 
 global_settings:
-  - SubcommandRequiredElseHelp
   - ColoredHelp
+
+settings:
+  - SubcommandRequiredElseHelp
 
 args:
   - debug:
