@@ -121,3 +121,7 @@ subcommands:
             help: The JQL query
             index: 1
             required: true
+        - url:
+            help: Display urls
+            long: url
+            short: u

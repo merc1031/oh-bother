@@ -181,5 +181,11 @@ fn jql(jira: &Jira, matches: &ArgMatches) {
     };
 
     let query = subcmd.value_of("query").unwrap();
-    util::perform_query(jira, query, |result| result.as_table())
+    util::perform_query(jira, query, |result| {
+        if subcmd.is_present("url") {
+            result.as_filtered_table(&["key", "browse_url"])
+        } else {
+            result.as_table()
+        }
+    })
 }
