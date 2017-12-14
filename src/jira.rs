@@ -14,6 +14,7 @@ use issue::{Issue, IssueVec};
 struct JQLQuery {
     jql: String,
     fields: Vec<String>,
+    maxResults: u16,
 }
 
 impl JQLQuery {
@@ -25,6 +26,7 @@ impl JQLQuery {
                          "assignee".to_string(),
                          "reporter".to_string(),
                          "labels".to_string()],
+            maxResults: 200,
         }
     }
 }
