@@ -1,6 +1,6 @@
 [package]
 name = "oh-bother"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Matt Chun-Lum <mchunlum@gmail.com>"]
 
 [[bin]]
@@ -14,7 +14,8 @@ lto = true
 [dependencies]
 clap = { version = "2.16.1", features = ["yaml"] }
 eprompt = { git = "https://github.com/mattcl/eprompt.git" }
-hyper = "~0.9.10"
+error-chain = "0.7.2"
+hyper = "^0.9"
 prettytable-rs = "^0.6"
 rpassword = "0.3"
 rustc-serialize = "*"

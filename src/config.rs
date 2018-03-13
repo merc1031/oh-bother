@@ -6,21 +6,20 @@ use std::path::Path;
 use std::io;
 use std::io::Read;
 use std::io::Write;
+use std::str;
 
-use error::ObError;
+use error::{ErrorKind, Result};
 
 use rustc_serialize::base64::{ToBase64, STANDARD};
 
-type ConfigResult<T> = Result<T, ObError>;
-
 // handle invalid configs by raising InvalidConfig if ever we try to get a value
 // and it's not there
-fn extract<F, T>(extractor: F) -> ConfigResult<T>
+fn extract<F, T>(extractor: F) -> Result<T>
     where F: Fn() -> Option<T>
 {
     match extractor() {
         Some(val) => Ok(val),
-        None => Err(ObError::InvalidConfig),
+        None => Err(ErrorKind::InvalidConfig.into())
     }
 }
 
@@ -42,7 +41,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(path: &Path) -> ConfigResult<Config> {
+    pub fn new(path: &Path) -> Result<Config> {
         let mut file = try!(File::open(&path));
         let mut s = String::new();
         try!(file.read_to_string(&mut s));
@@ -99,7 +98,7 @@ impl Config {
         })
     }
 
-    pub fn create(path: &Path) -> ConfigResult<Config> {
+    pub fn create(path: &Path) -> Result<Config> {
         print!("Jira url: ");
         try!(io::stdout().flush()); // need to do this since print! won't flush
         let mut jira = String::new();
@@ -150,7 +149,7 @@ fn create_config_file(path: &Path,
                       auth: &str,
                       npc: &str,
                       project_key: &str)
-                      -> Result<(), io::Error> {
+                      -> Result<()> {
     let mut file = try!(File::create(&path));
     let content = format!("# configuration for oh-bother
 config_version: 1

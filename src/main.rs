@@ -1,5 +1,9 @@
+#![recursion_limit = "1024"] // error chain recursion can be deep
+
 #[macro_use]
 extern crate clap;
+#[macro_use]
+extern crate error_chain;
 extern crate eprompt;
 extern crate hyper;
 extern crate prettytable;
