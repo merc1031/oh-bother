@@ -1,11 +1,11 @@
-use hyper;
+use base64::DecodeError;
 use clap;
 use eprompt;
-use std;
+use hyper;
+use serde_json;
 use std::io;
+use std;
 use url::ParseError;
-use rustc_serialize::json::{BuilderError, EncoderError};
-use rustc_serialize::base64::FromBase64Error;
 use yaml_rust::scanner::ScanError;
 
 error_chain! {
@@ -14,14 +14,13 @@ error_chain! {
     }
 
     foreign_links {
-        IoError(io::Error);
-        ScanError(ScanError);
-        ParseError(ParseError);
-        BuilderError(BuilderError);
-        EncoderError(EncoderError);
-        FromBase64Error(FromBase64Error);
+        Base64DecodeError(DecodeError);
         FromUtf8Error(std::string::FromUtf8Error);
+        IoError(io::Error);
+        JsonError(serde_json::Error);
+        ParseError(ParseError);
         RequestError(hyper::error::Error);
+        ScanError(ScanError);
     }
 
     errors {
@@ -37,9 +36,12 @@ error_chain! {
 }
 
 pub trait UnwrapOrExit<T>
-    where Self: Sized
+where
+    Self: Sized,
 {
-    fn unwrap_or_else<F>(self, f: F) -> T where F: FnOnce() -> T;
+    fn unwrap_or_else<F>(self, f: F) -> T
+    where
+        F: FnOnce() -> T;
 
     fn unwrap_or_exit(self, message: &str) -> T {
         let err = clap::Error::with_description(message, clap::ErrorKind::InvalidValue);
@@ -49,7 +51,8 @@ pub trait UnwrapOrExit<T>
 
 impl<T> UnwrapOrExit<T> for Option<T> {
     fn unwrap_or_else<F>(self, f: F) -> T
-        where F: FnOnce() -> T
+    where
+        F: FnOnce() -> T,
     {
         self.unwrap_or_else(f)
     }
@@ -57,15 +60,18 @@ impl<T> UnwrapOrExit<T> for Option<T> {
 
 impl<T> UnwrapOrExit<T> for Result<T> {
     fn unwrap_or_else<F>(self, f: F) -> T
-        where F: FnOnce() -> T
+    where
+        F: FnOnce() -> T,
     {
         self.unwrap_or_else(|_| f())
     }
 
     fn unwrap_or_exit(self, message: &str) -> T {
         self.unwrap_or_else(|e| {
-            let err = clap::Error::with_description(&format!("{}: {}", message, e),
-                                                    clap::ErrorKind::InvalidValue);
+            let err = clap::Error::with_description(
+                &format!("{}: {}", message, e),
+                clap::ErrorKind::InvalidValue,
+            );
             err.exit()
         })
     }

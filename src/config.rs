@@ -1,6 +1,3 @@
-use rpassword;
-use yaml_rust::YamlLoader;
-
 use std::fs::File;
 use std::path::Path;
 use std::io;
@@ -8,18 +5,21 @@ use std::io::Read;
 use std::io::Write;
 use std::str;
 
-use error::{ErrorKind, Result};
+use base64::encode;
+use rpassword;
+use yaml_rust::YamlLoader;
 
-use rustc_serialize::base64::{ToBase64, STANDARD};
+use error::{ErrorKind, Result};
 
 // handle invalid configs by raising InvalidConfig if ever we try to get a value
 // and it's not there
 fn extract<F, T>(extractor: F) -> Result<T>
-    where F: Fn() -> Option<T>
+where
+    F: Fn() -> Option<T>,
 {
     match extractor() {
         Some(val) => Ok(val),
-        None => Err(ErrorKind::InvalidConfig.into())
+        None => Err(ErrorKind::InvalidConfig.into()),
     }
 }
 
@@ -66,16 +66,18 @@ impl Config {
             npc_users.push(val);
         }
         let open_in_browser = try!(extract(|| data["config"]["open_in_browser"].as_bool()));
-        let browser_command = try!(extract(|| data["config"]["browser_command"].as_str()))
-            .to_string();
+        let browser_command =
+            try!(extract(|| data["config"]["browser_command"].as_str())).to_string();
 
-        let default_project_key =
-            try!(extract(|| data["config"]["new_issue_defaults"]["project_key"].as_str()))
-                .to_string();
-        let default_assignee =
-            try!(extract(|| data["config"]["new_issue_defaults"]["assignee"].as_str())).to_string();
-        let raw_default_labels =
-            try!(extract(|| data["config"]["new_issue_defaults"]["labels"].as_vec()));
+        let default_project_key = try!(extract(|| data["config"]["new_issue_defaults"]
+            ["project_key"]
+            .as_str()))
+            .to_string();
+        let default_assignee = try!(extract(|| data["config"]["new_issue_defaults"]["assignee"]
+            .as_str()))
+            .to_string();
+        let raw_default_labels = try!(extract(|| data["config"]["new_issue_defaults"]["labels"]
+            .as_vec()));
         let mut default_labels = Vec::new();
         for elem in raw_default_labels {
             let val = try!(extract(|| elem.as_str())).to_string();
@@ -107,29 +109,37 @@ impl Config {
         print!("Username: ");
         try!(io::stdout().flush()); // need to do this since print! won't flush
         let mut username = String::new();
-        io::stdin().read_line(&mut username).expect("Invalid username");
+        io::stdin()
+            .read_line(&mut username)
+            .expect("Invalid username");
 
         let pass = rpassword::prompt_password_stdout("Password: ").unwrap();
 
         print!("Interrupt project key: ");
         try!(io::stdout().flush()); // need to do this since print! won't flush
         let mut project_key = String::new();
-        io::stdin().read_line(&mut project_key).expect("Invalid project key");
+        io::stdin()
+            .read_line(&mut project_key)
+            .expect("Invalid project key");
 
         print!("Team username (a 'team' user like 'foo-robot'): ");
         try!(io::stdout().flush()); // need to do this since print! won't flush
         let mut npc = String::new();
-        io::stdin().read_line(&mut npc).expect("Invalid team username");
+        io::stdin()
+            .read_line(&mut npc)
+            .expect("Invalid team username");
 
         let auth = format!("{}:{}", username.trim(), pass.trim());
-        let base64auth = auth.as_bytes().to_base64(STANDARD);
+        let base64auth = encode(&auth);
 
-        try!(create_config_file(path,
-                                jira.trim(),
-                                username.trim(),
-                                &base64auth,
-                                npc.trim(),
-                                project_key.trim()));
+        try!(create_config_file(
+            path,
+            jira.trim(),
+            username.trim(),
+            &base64auth,
+            npc.trim(),
+            project_key.trim()
+        ));
 
         Config::new(path)
     }
@@ -143,15 +153,17 @@ impl Config {
     }
 }
 
-fn create_config_file(path: &Path,
-                      jira: &str,
-                      username: &str,
-                      auth: &str,
-                      npc: &str,
-                      project_key: &str)
-                      -> Result<()> {
+fn create_config_file(
+    path: &Path,
+    jira: &str,
+    username: &str,
+    auth: &str,
+    npc: &str,
+    project_key: &str,
+) -> Result<()> {
     let mut file = try!(File::create(&path));
-    let content = format!("# configuration for oh-bother
+    let content = format!(
+        "# configuration for oh-bother
 config_version: 1
 config:
   # connectivity settings
@@ -178,11 +190,12 @@ config:
     labels:
       - interrupt
 ",
-                          jira = jira,
-                          username = username,
-                          auth = auth,
-                          npc = npc,
-                          project_key = project_key);
+        jira = jira,
+        username = username,
+        auth = auth,
+        npc = npc,
+        project_key = project_key
+    );
 
     try!(file.write_all(content.as_bytes()));
     Ok(())
