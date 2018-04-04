@@ -15,15 +15,16 @@ extern crate serde_json;
 extern crate url;
 extern crate yaml_rust;
 
-use clap::{App, Arg, ArgMatches};
-
+use std::io;
+use std::io::Read;
 use std::env;
 use std::path::Path;
 
+use clap::{App, Arg, ArgMatches};
+use eprompt::Prompt;
+
 use config::Config;
 use jira::Jira;
-
-use eprompt::Prompt;
 
 mod config;
 mod issue;
