@@ -179,4 +179,8 @@ impl IssueVec {
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
+
+    pub fn get(&self, idx: usize) -> Option<&Issue> {
+        self.0.get(idx)
+    }
 }

@@ -296,7 +296,7 @@ dependencies = [
 
 [[package]]
 name = "oh-bother"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "base64 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.31.1 (registry+https://github.com/rust-lang/crates.io-index)",

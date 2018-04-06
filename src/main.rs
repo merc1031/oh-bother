@@ -15,8 +15,6 @@ extern crate serde_json;
 extern crate url;
 extern crate yaml_rust;
 
-use std::io;
-use std::io::Read;
 use std::env;
 use std::path::Path;
 
@@ -122,6 +120,11 @@ fn issue(config: &Config, jira: &Jira, matches: &ArgMatches) {
 }
 
 fn list(config: &Config, jira: &Jira, matches: &ArgMatches) {
+    let subcmd = match matches.subcommand_matches("list") {
+        Some(matches) => matches,
+        None => util::exit("this should not be possible"),
+    };
+
     let query = format!(
         "project in ({}) AND status not in (Resolved, Closed)",
         config.projects()
@@ -130,6 +133,11 @@ fn list(config: &Config, jira: &Jira, matches: &ArgMatches) {
     util::render_issues(&issues, |result| {
         result.as_filtered_table(&["key", "reporter", "assignee", "status", "summary"])
     });
+
+    if subcmd.is_present("open") {
+        let issue = util::prompt_for_issue(&issues);
+        util::open_in_browser(config, issue);
+    }
 }
 
 fn current(config: &Config, jira: &Jira) {
