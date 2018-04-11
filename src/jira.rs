@@ -103,6 +103,7 @@ impl Jira {
         description: &str,
         assignee: &str,
         labels: &Vec<String>,
+        debug: bool
     ) -> Result<Issue> {
         let url = self.base_url.join("rest/api/2/issue")?;
         let request = CreateIssueRequest::new(project_key, summary, description, assignee, labels);
@@ -115,6 +116,9 @@ impl Jira {
         let mut res = self.client.post(url).body(body.as_str()).send()?;
         let mut response_body = String::new();
         res.read_to_string(&mut response_body)?;
+        if debug {
+            println!("{}", response_body);
+        }
         let response: serde_json::Result<CreateIssueResponse> =
             serde_json::from_str(response_body.as_str());
         match response {
@@ -138,7 +142,7 @@ impl Jira {
             serde_json::from_str(response_body.as_str());
         match response {
             Ok(r) => Ok(Issue::from_issue_response(&r)),
-            Err(_) => Err(ErrorKind::Unexpected(format!("Issue {} not found", issue_key)).into()),
+            Err(e) => Err(ErrorKind::Unexpected(format!("Issue {} not found {}", issue_key, e)).into()),
         }
     }
 }

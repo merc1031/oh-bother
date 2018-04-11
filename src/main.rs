@@ -11,6 +11,7 @@ extern crate prettytable;
 extern crate rpassword;
 #[macro_use]
 extern crate serde_derive;
+extern crate serde;
 extern crate serde_json;
 extern crate url;
 extern crate yaml_rust;
@@ -88,12 +89,12 @@ fn main() {
         match matches.subcommand_name() {
             Some("issue") => issue(&config, &jira, &matches),
             Some("list") => list(&config, &jira, &matches),
-            Some("current") => current(&config, &jira),
-            Some("next") => next(&config, &jira),
+            Some("current") => current(&config, &jira, &matches),
+            Some("next") => next(&config, &jira, &matches),
             Some("start") => println!("start not implemented"),
             Some("stop") => println!("stop not implemented"),
             Some("close") => println!("close not implemented"),
-            Some("new") => new(&config, &jira, &matches),
+            Some("new") => new(&config, &jira, &matches, debug),
             Some("jql") => jql(&jira, &matches),
             _ => util::exit("unknown command"), // shouldn't really ever get here
         }
@@ -140,7 +141,12 @@ fn list(config: &Config, jira: &Jira, matches: &ArgMatches) {
     }
 }
 
-fn current(config: &Config, jira: &Jira) {
+fn current(config: &Config, jira: &Jira, matches: &ArgMatches) {
+    let subcmd = match matches.subcommand_matches("current") {
+        Some(matches) => matches,
+        None => util::exit("this should not be possible"),
+    };
+
     let query = format!(
         "project in ({}) AND assignee = {} AND status not in (Resolved, Closed)",
         config.projects(),
@@ -150,9 +156,19 @@ fn current(config: &Config, jira: &Jira) {
     util::render_issues(&issues, |result| {
         result.as_filtered_table(&["key", "reporter", "status", "summary"])
     });
+
+    if subcmd.is_present("open") {
+        let issue = util::prompt_for_issue(&issues);
+        util::open_in_browser(config, issue);
+    }
 }
 
-fn next(config: &Config, jira: &Jira) {
+fn next(config: &Config, jira: &Jira, matches: &ArgMatches) {
+    let subcmd = match matches.subcommand_matches("next") {
+        Some(matches) => matches,
+        None => util::exit("this should not be possible"),
+    };
+
     let query = format!(
         "project in ({}) AND status = Open AND assignee in ({})",
         config.projects(),
@@ -162,9 +178,14 @@ fn next(config: &Config, jira: &Jira) {
     util::render_issues(&issues, |result| {
         result.as_filtered_table(&["key", "reporter", "summary"])
     });
+
+    if subcmd.is_present("open") {
+        let issue = util::prompt_for_issue(&issues);
+        util::open_in_browser(config, issue);
+    }
 }
 
-fn new(config: &Config, jira: &Jira, matches: &ArgMatches) {
+fn new(config: &Config, jira: &Jira, matches: &ArgMatches, debug: bool) {
     let subcmd = match matches.subcommand_matches("new") {
         Some(matches) => matches,
         None => util::exit("this should not be possible"),
@@ -191,7 +212,7 @@ fn new(config: &Config, jira: &Jira, matches: &ArgMatches) {
         };
     }
 
-    let issue = match jira.create_issue(project, summary, description.as_str(), assignee, &labels) {
+    let issue = match jira.create_issue(project, summary, description.as_str(), assignee, &labels, debug) {
         Err(why) => util::exit(&format!("Error creating issue \"{}\": {}", summary, why)),
         Ok(issue) => issue,
     };

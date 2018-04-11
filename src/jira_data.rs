@@ -1,3 +1,5 @@
+use serde::{Deserialize, Deserializer};
+
 #[derive(Serialize, Debug, PartialEq)]
 pub struct AuthRequest {
     pub username: String,
@@ -64,13 +66,40 @@ pub struct IssueResponseList {
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct IssueFields {
     pub summary: String,
-    #[serde(default = "default_description")] pub description: String,
-    pub assignee: UserFields,
+    #[serde(default = "default_description", deserialize_with = "nullable_description")] pub description: String,
+    #[serde(default = "default_user", deserialize_with = "nullable_user_fields")] pub assignee: UserFields,
     pub labels: Vec<String>,
     #[serde(default = "default_project")] pub project: ProjectFields,
     #[serde(default = "default_issuetype")] pub issuetype: IssueTypeFields,
     #[serde(skip_serializing)] pub reporter: Option<UserFields>,
     #[serde(skip_serializing)] pub status: Option<Status>,
+}
+
+fn nullable_user_fields<'de, D>(deserializer: D) -> Result<UserFields, D::Error>
+    where D: Deserializer<'de>
+{
+    let opt = Option::deserialize(deserializer)?;
+    match opt {
+        Some(o) => Ok(o),
+        None => Ok(default_user()),
+    }
+}
+
+fn default_user() -> UserFields {
+    UserFields {
+        name: "<unknown>".to_string(),
+        displayName: None,
+    }
+}
+
+fn nullable_description<'de, D>(deserializer: D) -> Result<String, D::Error>
+    where D: Deserializer<'de>
+{
+    let opt = Option::deserialize(deserializer)?;
+    match opt {
+        Some(o) => Ok(o),
+        None => Ok(default_description()),
+    }
 }
 
 fn default_description() -> String {
