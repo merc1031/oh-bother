@@ -120,69 +120,45 @@ fn issue(config: &Config, jira: &Jira, matches: &ArgMatches) {
     }
 }
 
-fn list(config: &Config, jira: &Jira, matches: &ArgMatches) {
-    let subcmd = match matches.subcommand_matches("list") {
-        Some(matches) => matches,
-        None => util::exit("this should not be possible"),
-    };
-
-    let query = format!(
-        "project in ({}) AND status not in (Resolved, Closed)",
-        config.projects()
-    );
-    let issues = util::perform_query(jira, &query);
+fn query_helper(config: &Config, jira: &Jira, query: &str, output_columns: &[&str], prompt: bool) {
+    let issues = util::perform_query(jira, query);
     util::render_issues(&issues, |result| {
-        result.as_filtered_table(&["key", "reporter", "assignee", "status", "summary"])
+        result.as_filtered_table(output_columns)
     });
 
-    if subcmd.is_present("open") {
+    if prompt {
         let issue = util::prompt_for_issue(&issues);
         util::open_in_browser(config, issue);
     }
 }
 
-fn current(config: &Config, jira: &Jira, matches: &ArgMatches) {
-    let subcmd = match matches.subcommand_matches("current") {
-        Some(matches) => matches,
-        None => util::exit("this should not be possible"),
-    };
+fn list(config: &Config, jira: &Jira, matches: &ArgMatches) {
+    let query = format!(
+        "project in ({}) AND status not in (Resolved, Closed)",
+        config.projects()
+    );
+    let output_columns = ["key", "reporter", "assignee", "status", "summary"];
+    query_helper(config, jira, &query, &output_columns, matches.is_present("open"));
+}
 
+fn current(config: &Config, jira: &Jira, matches: &ArgMatches) {
     let query = format!(
         "project in ({}) AND assignee = {} AND status not in (Resolved, Closed)",
         config.projects(),
         config.username
     );
-    let issues = util::perform_query(jira, &query);
-    util::render_issues(&issues, |result| {
-        result.as_filtered_table(&["key", "reporter", "status", "summary"])
-    });
-
-    if subcmd.is_present("open") {
-        let issue = util::prompt_for_issue(&issues);
-        util::open_in_browser(config, issue);
-    }
+    let output_columns = ["key", "reporter", "status", "summary"];
+    query_helper(config, jira, &query, &output_columns, matches.is_present("open"));
 }
 
 fn next(config: &Config, jira: &Jira, matches: &ArgMatches) {
-    let subcmd = match matches.subcommand_matches("next") {
-        Some(matches) => matches,
-        None => util::exit("this should not be possible"),
-    };
-
     let query = format!(
         "project in ({}) AND status = Open AND assignee in ({})",
         config.projects(),
         config.npc_users()
     );
-    let issues = util::perform_query(jira, &query);
-    util::render_issues(&issues, |result| {
-        result.as_filtered_table(&["key", "reporter", "summary"])
-    });
-
-    if subcmd.is_present("open") {
-        let issue = util::prompt_for_issue(&issues);
-        util::open_in_browser(config, issue);
-    }
+    let output_columns = ["key", "reporter", "summary"];
+    query_helper(config, jira, &query, &output_columns, matches.is_present("open"));
 }
 
 fn new(config: &Config, jira: &Jira, matches: &ArgMatches, debug: bool) {

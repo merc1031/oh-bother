@@ -1,5 +1,5 @@
 name: oh-bother
-version: 0.3.2
+version: 0.3.3
 author: Matt Chun-Lum
 about: |
   Simple* JIRA interrupt helpers.
@@ -32,27 +32,12 @@ subcommands:
 
   - list:
       about: Lists open interrupts
-      args:
-        - interactive:
-            help: "Allow for selecting an issue"
-            short: i
-            long: interactive
 
   - current:
       about: Lists open interrupts assigned to you
-      args:
-        - interactive:
-            help: "Allow for selecting an issue"
-            short: i
-            long: interactive
 
   - next:
       about: Lists available interrupts
-      args:
-        - interactive:
-            help: "Allow for selecting an issue"
-            short: i
-            long: interactive
 
   # - start:
   #     about: Start work on the specified interrupt
