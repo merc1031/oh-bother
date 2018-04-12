@@ -15,10 +15,6 @@ matrix:
     # Linux
     - env: TARGET=x86_64-unknown-linux-gnu
 
-    # OSX
-    - env: TARGET=x86_64-apple-darwin
-      os: osx
-
     # Testing other channels
     - env: TARGET=x86_64-unknown-linux-gnu
       rust: nightly
