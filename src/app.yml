@@ -1,5 +1,5 @@
 name: oh-bother
-version: 0.3.4
+version: 0.3.5
 author: Matt Chun-Lum
 about: |
   Simple* JIRA interrupt helpers.

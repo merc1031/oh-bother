@@ -95,7 +95,7 @@ fn main() {
             Some("stop") => println!("stop not implemented"),
             Some("close") => println!("close not implemented"),
             Some("new") => new(&config, &jira, &matches, debug),
-            Some("jql") => jql(&jira, &matches),
+            Some("jql") => jql(&config, &jira, &matches),
             _ => util::exit("unknown command"), // shouldn't really ever get here
         }
     }
@@ -200,7 +200,7 @@ fn new(config: &Config, jira: &Jira, matches: &ArgMatches, debug: bool) {
     }
 }
 
-fn jql(jira: &Jira, matches: &ArgMatches) {
+fn jql(config: &Config, jira: &Jira, matches: &ArgMatches) {
     let subcmd = match matches.subcommand_matches("jql") {
         Some(matches) => matches,
         None => util::exit("this should not be possible"),
@@ -214,5 +214,10 @@ fn jql(jira: &Jira, matches: &ArgMatches) {
         } else {
             result.as_table()
         }
-    })
+    });
+
+    if matches.is_present("open") {
+        let issue = util::prompt_for_issue(&issues);
+        util::open_in_browser(config, issue);
+    }
 }
