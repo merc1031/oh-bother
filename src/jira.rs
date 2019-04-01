@@ -99,6 +99,7 @@ impl Jira {
     pub fn create_issue(
         &self,
         project_key: &str,
+        issue_type: &str,
         summary: &str,
         description: &str,
         assignee: &str,
@@ -106,7 +107,7 @@ impl Jira {
         debug: bool
     ) -> Result<Issue> {
         let url = self.base_url.join("rest/api/2/issue")?;
-        let request = CreateIssueRequest::new(project_key, summary, description, assignee, labels);
+        let request = CreateIssueRequest::new(project_key, issue_type, summary, description, assignee, labels);
         let body = serde_json::to_string(&request)?;
 
         if self.debug {

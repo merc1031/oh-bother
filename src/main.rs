@@ -170,6 +170,9 @@ fn new(config: &Config, jira: &Jira, matches: &ArgMatches, debug: bool) {
     let project = subcmd
         .value_of("project")
         .unwrap_or(config.defaults.project_key.as_str());
+    let issue_type = subcmd
+        .value_of("issue_type")
+        .unwrap_or(config.defaults.issue_type.as_str());
     let summary = subcmd.value_of("summary").unwrap();
     let assignee = subcmd
         .value_of("assignee")
@@ -188,7 +191,7 @@ fn new(config: &Config, jira: &Jira, matches: &ArgMatches, debug: bool) {
         };
     }
 
-    let issue = match jira.create_issue(project, summary, description.as_str(), assignee, &labels, debug) {
+    let issue = match jira.create_issue(project, issue_type, summary, description.as_str(), assignee, &labels, debug) {
         Err(why) => util::exit(&format!("Error creating issue \"{}\": {}", summary, why)),
         Ok(issue) => issue,
     };

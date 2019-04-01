@@ -100,6 +100,11 @@ subcommands:
             long: label
             multiple: true
             takes_value: true
+        - issue_type:
+            help: The issue_type (defaults to value in config file)
+            short: i
+            long: issue-type
+            takes_value: true
         - project:
             help: The project key (defaults to value in config file)
             short: p

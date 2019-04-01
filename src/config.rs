@@ -25,6 +25,7 @@ where
 
 pub struct Defaults {
     pub project_key: String,
+    pub issue_type: String,
     pub assignee: String,
     pub labels: Vec<String>,
 }
@@ -73,6 +74,10 @@ impl Config {
             ["project_key"]
             .as_str()))
             .to_string();
+        let default_issue_type = try!(extract(|| data["config"]["new_issue_defaults"]
+            ["issue_type"]
+            .as_str()))
+            .to_string();
         let default_assignee = try!(extract(|| data["config"]["new_issue_defaults"]["assignee"]
             .as_str()))
             .to_string();
@@ -94,6 +99,7 @@ impl Config {
             browser_command: browser_command,
             defaults: Defaults {
                 project_key: default_project_key,
+                issue_type: default_issue_type,
                 assignee: default_assignee,
                 labels: default_labels,
             },
@@ -187,6 +193,7 @@ config:
   new_issue_defaults:
     project_key: \"{project_key}\"
     assignee: \"{npc}\"
+    issue_type: \"Bug\"
     labels:
       - interrupt
 ",

@@ -152,6 +152,7 @@ pub struct IssueTypeFields {
 impl CreateIssueRequest {
     pub fn new(
         project_key: &str,
+        issue_type: &str,
         summary: &str,
         description: &str,
         assignee: &str,
@@ -165,7 +166,7 @@ impl CreateIssueRequest {
                 },
                 description: description.to_string(),
                 issuetype: IssueTypeFields {
-                    name: "Bug".to_string(),
+                    name: issue_type.to_string(),
                 },
                 labels: labels.clone(),
                 project: ProjectFields {
