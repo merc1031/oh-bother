@@ -16,6 +16,7 @@ extern crate serde_json;
 extern crate url;
 extern crate yaml_rust;
 
+use std::collections::BTreeMap;
 use std::env;
 use std::path::Path;
 
@@ -183,6 +184,14 @@ fn new(config: &Config, jira: &Jira, matches: &ArgMatches, debug: bool) {
         None => config.defaults.labels.to_owned(),
     };
 
+    let extra_fields = match subcmd.values_of_lossy("extra_fields") {
+        Some(fields) => fields.iter().map(|x| {
+            let parts: Vec<&str> = x.split(":").collect();
+            return (parts[0].into(), parts[1].into());
+        }).collect::<BTreeMap<_,_>>(),
+        None => config.defaults.extra_fields.to_owned(),
+    };
+
     let mut description = subcmd.value_of("description").unwrap_or("").to_string();
     if subcmd.is_present("long_description") {
         description = match Prompt::new().execute() {
@@ -191,7 +200,7 @@ fn new(config: &Config, jira: &Jira, matches: &ArgMatches, debug: bool) {
         };
     }
 
-    let issue = match jira.create_issue(project, issue_type, summary, description.as_str(), assignee, &labels, debug) {
+    let issue = match jira.create_issue(project, issue_type, summary, description.as_str(), assignee, &labels, &extra_fields, debug) {
         Err(why) => util::exit(&format!("Error creating issue \"{}\": {}", summary, why)),
         Ok(issue) => issue,
     };

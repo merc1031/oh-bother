@@ -105,6 +105,11 @@ subcommands:
             short: i
             long: issue-type
             takes_value: true
+        - extra_fields:
+            help: Extra fields (can be specified multiple times, colon seperated) (defaults to hash value in config file)
+            long: extra-fields
+            multiple: true
+            takes_value: true
         - project:
             help: The project key (defaults to value in config file)
             short: p

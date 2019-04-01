@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use serde::{Deserialize, Deserializer};
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -73,6 +74,7 @@ pub struct IssueFields {
     #[serde(default = "default_issuetype")] pub issuetype: IssueTypeFields,
     #[serde(skip_serializing)] pub reporter: Option<UserFields>,
     #[serde(skip_serializing)] pub status: Option<Status>,
+    #[serde(skip_deserializing, flatten)] pub extra: BTreeMap<String, SelectListFields>,
 }
 
 fn nullable_user_fields<'de, D>(deserializer: D) -> Result<UserFields, D::Error>
@@ -149,6 +151,11 @@ pub struct IssueTypeFields {
     pub name: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct SelectListFields {
+    pub id: String,
+}
+
 impl CreateIssueRequest {
     pub fn new(
         project_key: &str,
@@ -157,6 +164,7 @@ impl CreateIssueRequest {
         description: &str,
         assignee: &str,
         labels: &Vec<String>,
+        extra_fields: &BTreeMap<String, String>,
     ) -> Self {
         CreateIssueRequest {
             fields: IssueFields {
@@ -175,6 +183,7 @@ impl CreateIssueRequest {
                 reporter: None,
                 status: None,
                 summary: summary.to_string(),
+                extra: extra_fields.clone().into_iter().map(|(k, x)| (k, SelectListFields { id: x })).collect::<BTreeMap<_,_>>(),
             },
         }
     }

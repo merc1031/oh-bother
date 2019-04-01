@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::path::Path;
 use std::io;
@@ -28,6 +29,7 @@ pub struct Defaults {
     pub issue_type: String,
     pub assignee: String,
     pub labels: Vec<String>,
+    pub extra_fields: BTreeMap<String, String>,
 }
 
 pub struct Config {
@@ -88,6 +90,13 @@ impl Config {
             let val = try!(extract(|| elem.as_str())).to_string();
             default_labels.push(val);
         }
+        let raw_default_extra_fields = try!(extract(|| data["config"]["new_issue_defaults"]["extra_fields"].as_hash()));
+        let mut default_extra_fields = BTreeMap::new();
+        for (raw_key, elem) in raw_default_extra_fields {
+            let key = try!(extract(|| raw_key.as_str())).to_string();
+            let val = try!(extract(|| elem.as_str())).to_string();
+            default_extra_fields.insert(key, val);
+        }
 
         Ok(Config {
             jira_url: jira_url,
@@ -102,6 +111,7 @@ impl Config {
                 issue_type: default_issue_type,
                 assignee: default_assignee,
                 labels: default_labels,
+                extra_fields: default_extra_fields,
             },
         })
     }
@@ -196,6 +206,7 @@ config:
     issue_type: \"Bug\"
     labels:
       - interrupt
+    extra_fields: {}
 ",
         jira = jira,
         username = username,

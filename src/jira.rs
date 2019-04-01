@@ -5,6 +5,7 @@ use hyper::client::{IntoUrl, RequestBuilder};
 use hyper::header::{ContentType, Cookie, CookiePair, Headers};
 use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use serde_json;
+use std::collections::BTreeMap;
 use std::io::Read;
 
 use error::{ErrorKind, Result};
@@ -104,10 +105,11 @@ impl Jira {
         description: &str,
         assignee: &str,
         labels: &Vec<String>,
+        extra_fields: &BTreeMap<String, String>,
         debug: bool
     ) -> Result<Issue> {
         let url = self.base_url.join("rest/api/2/issue")?;
-        let request = CreateIssueRequest::new(project_key, issue_type, summary, description, assignee, labels);
+        let request = CreateIssueRequest::new(project_key, issue_type, summary, description, assignee, labels, extra_fields);
         let body = serde_json::to_string(&request)?;
 
         if self.debug {
